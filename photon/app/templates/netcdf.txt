@@ -1,0 +1,13 @@
+# cell 1
+import xarray as xr
+url = "{{ dataset_url }}"
+ds = xr.open_dataset(url)
+
+# cell 2
+var = ds.get('{{ variable }}') if '{{ variable }}' in ds else None
+import matplotlib.pyplot as plt
+if var is not None:
+    var_mean = var.mean(dim='time', skipna=True)
+    var_mean.plot()
+    plt.title('{{ title }}')
+    plt.show()
