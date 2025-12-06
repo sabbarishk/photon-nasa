@@ -20,5 +20,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r photon/requirements.txt
       - name: Run tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/photon
+          PHOTON_SKIP_AUTH: "1"
         run: |
+          cd photon
           python -m pytest -q
