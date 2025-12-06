@@ -1,0 +1,12 @@
+# cell 1
+import pandas as pd
+url = "{{ dataset_url }}"
+df = pd.read_csv(url)
+df['time'] = pd.to_datetime(df.get('time', df.get('date')))
+df = df.set_index('time')
+
+# cell 2
+series = df["{{ variable }}"]
+import matplotlib.pyplot as plt
+series.resample("M").mean().plot(title="{{ title }}")
+plt.show()
