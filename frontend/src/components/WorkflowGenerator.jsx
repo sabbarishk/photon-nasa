@@ -39,7 +39,12 @@ function WorkflowGenerator() {
   const downloadNotebook = () => {
     if (!notebook || !notebook.notebook) return
     
-    const blob = new Blob([JSON.stringify(notebook.notebook, null, 2)], {
+    // notebook.notebook is already a JSON string from the API
+    const notebookContent = typeof notebook.notebook === 'string' 
+      ? notebook.notebook 
+      : JSON.stringify(notebook.notebook, null, 2)
+    
+    const blob = new Blob([notebookContent], {
       type: 'application/json'
     })
     const url = URL.createObjectURL(blob)
@@ -169,7 +174,16 @@ function WorkflowGenerator() {
                   <div className="space-y-2 text-sm text-gray-400">
                     <p><span className="text-gray-500">Format:</span> {formData.format.toUpperCase()}</p>
                     <p><span className="text-gray-500">Variable:</span> {formData.variable}</p>
-                    <p><span className="text-gray-500">Cells:</span> {notebook.notebook?.cells?.length || 0}</p>
+                    <p><span className="text-gray-500">Cells:</span> {(() => {
+                      try {
+                        const nb = typeof notebook.notebook === 'string' 
+                          ? JSON.parse(notebook.notebook) 
+                          : notebook.notebook
+                        return nb?.cells?.length || 0
+                      } catch {
+                        return 0
+                      }
+                    })()}</p>
                   </div>
                 </div>
 
@@ -181,16 +195,18 @@ function WorkflowGenerator() {
                     <Download className="w-5 h-5" />
                     Download .ipynb
                   </button>
-                  <button
-                    onClick={() => setShowPreview(!showPreview)}
-                    className="flex-1 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
-                  >
-                    <Eye className="w-5 h-5" />
-                    {showPreview ? 'Hide' : 'Preview'}
-                  </button>
-                </div>
-
                 {showPreview && notebook.notebook && (
+                  <div className="mt-4">
+                    <h4 className="text-white font-semibold mb-2">Preview:</h4>
+                    <div className="bg-black/50 rounded-lg p-4 max-h-96 overflow-auto">
+                      <pre className="text-xs text-gray-300 whitespace-pre-wrap">
+                        {typeof notebook.notebook === 'string' 
+                          ? notebook.notebook 
+                          : JSON.stringify(notebook.notebook, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}howPreview && notebook.notebook && (
                   <div className="mt-4">
                     <h4 className="text-white font-semibold mb-2">Preview:</h4>
                     <div className="bg-black/50 rounded-lg p-4 max-h-96 overflow-auto">
