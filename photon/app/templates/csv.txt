@@ -25,8 +25,26 @@ url = "{{ dataset_url }}"
 try:
     # Try standard parsing first
     df = pd.read_csv(url)
-    print(f"✅ Loaded {len(df)} records with {len(df.columns)} columns")
-except:
+    print(f"✅ Loaded {len(df)} records")
+    
+    # Handle MultiIndex - GISS data stores values IN the MultiIndex
+    if isinstance(df.index, pd.MultiIndex):
+        print("🔄 Detected MultiIndex format (GISS-style)")
+        
+        # Extract data from MultiIndex into a proper DataFrame
+        # First row of MultiIndex contains column names
+        col_names = list(df.index[0])
+        
+        # Rest of the rows contain data
+        data_rows = [list(idx) for idx in df.index[1:]]
+        
+        # Create new DataFrame with proper structure
+        df = pd.DataFrame(data_rows, columns=col_names)
+        print(f"   Restructured to {df.shape[0]} rows × {df.shape[1]} columns")
+        print(f"   Columns: {list(df.columns)[:8]}")
+        
+except Exception as e:
+    print(f"⚠️  Error loading CSV: {e}")
     # Try skipping rows or different separators
     try:
         df = pd.read_csv(url, skiprows=1)
@@ -34,11 +52,6 @@ except:
     except:
         df = pd.read_csv(url, sep='\s+')
         print(f"✅ Loaded {len(df)} records (whitespace separator)")
-
-# Reset index if MultiIndex was created accidentally
-if isinstance(df.index, pd.MultiIndex):
-    df = df.reset_index()
-    print("🔄 Reset MultiIndex to standard index")
 
 print(f"\n📋 Dataset Info:")
 print(f"Shape: {df.shape}")
