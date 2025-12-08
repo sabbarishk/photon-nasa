@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Search as SearchIcon, Loader2, Database, ExternalLink } from 'lucide-react'
 import { searchDatasets } from '../services/api'
+import { useDataset } from '../context/DatasetContext'
 
 function Search() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const { selectDataset } = useDataset()
 
   const handleSearch = async (e) => {
     e.preventDefault()
@@ -109,7 +111,18 @@ function Search() {
                   </div>
                   <button
                     onClick={() => {
-                      // Pre-fill workflow generator with this dataset
+                      // Extract dataset info and pass to workflow generator
+                      const datasetInfo = {
+                        url: result.meta?.dataset_url || result.meta?.landing_page || result.meta?.url || '',
+                        title: result.meta?.title || result.meta?.text || result.id,
+                        format: result.meta?.format || 'csv',
+                        summary: result.meta?.description || result.meta?.summary || '',
+                        variable: '', // Will be filled by user
+                      }
+                      
+                      selectDataset(datasetInfo)
+                      
+                      // Scroll to workflow generator
                       const workflowSection = document.getElementById('generate')
                       if (workflowSection) {
                         workflowSection.scrollIntoView({ behavior: 'smooth' })

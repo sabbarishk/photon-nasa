@@ -1,14 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FileCode, Loader2, Download, Eye, CheckCircle, Play, Image as ImageIcon } from 'lucide-react'
 import { generateWorkflow, executeNotebook } from '../services/api'
+import { useDataset } from '../context/DatasetContext'
 
 function WorkflowGenerator() {
+  const { selectedDataset, clearDataset } = useDataset()
   const [formData, setFormData] = useState({
     datasetUrl: '',
     format: 'csv',
     variable: '',
     title: ''
   })
+  
+  // Auto-populate form when dataset is selected
+  useEffect(() => {
+    if (selectedDataset) {
+      setFormData({
+        datasetUrl: selectedDataset.url,
+        format: selectedDataset.format || 'csv',
+        variable: selectedDataset.variable || '',
+        title: selectedDataset.title || ''
+      })
+      // Clear the selected dataset after populating
+      // clearDataset()
+    }
+  }, [selectedDataset])
   const [notebook, setNotebook] = useState(null)
   const [loading, setLoading] = useState(false)
   const [executing, setExecuting] = useState(false)
@@ -319,48 +335,72 @@ function WorkflowGenerator() {
           </div>
         </div>
 
-        {/* Example Section */}
-        <div className="mt-16 glass-effect rounded-lg p-8">
-          <h3 className="text-2xl font-bold text-white mb-4">Example Workflows</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => setFormData({
-                datasetUrl: 'https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv',
-                format: 'csv',
-                variable: 'J-D',
-                title: 'GISS Temperature Analysis'
-              })}
-              className="text-left bg-white/5 hover:bg-white/10 rounded-lg p-4 transition"
-            >
-              <div className="text-nasa-red font-semibold mb-2">GISS Temperature</div>
-              <div className="text-sm text-gray-400">Global temperature anomalies (CSV)</div>
-            </button>
-            <button
-              onClick={() => setFormData({
-                datasetUrl: 'https://example.nasa.gov/modis/data.nc',
-                format: 'netcdf',
-                variable: 'surface_reflectance',
-                title: 'MODIS Surface Reflectance'
-              })}
-              className="text-left bg-white/5 hover:bg-white/10 rounded-lg p-4 transition"
-            >
-              <div className="text-nasa-red font-semibold mb-2">MODIS Data</div>
-              <div className="text-sm text-gray-400">Surface reflectance (NetCDF)</div>
-            </button>
-            <button
-              onClick={() => setFormData({
-                datasetUrl: 'https://example.nasa.gov/ice-cores.csv',
-                format: 'csv',
-                variable: 'co2_ppm',
-                title: 'Ice Core CO2 Analysis'
-              })}
-              className="text-left bg-white/5 hover:bg-white/10 rounded-lg p-4 transition"
-            >
-              <div className="text-nasa-red font-semibold mb-2">Ice Core Data</div>
-              <div className="text-sm text-gray-400">CO2 measurements (CSV)</div>
-            </button>
+        {/* Quick Start Guide */}
+        {!notebook && (
+          <div className="mt-16 glass-effect rounded-lg p-8">
+            <h3 className="text-2xl font-bold text-white mb-4">Quick Start Guide</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white/5 rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-nasa-red flex items-center justify-center text-white font-bold">
+                    1
+                  </div>
+                  <h4 className="text-white font-semibold">Search for Datasets</h4>
+                </div>
+                <p className="text-gray-400 text-sm">
+                  Use the search bar above to find NASA datasets. Try queries like "MODIS temperature", 
+                  "ocean salinity", or "ice sheet elevation".
+                </p>
+              </div>
+              
+              <div className="bg-white/5 rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-nasa-red flex items-center justify-center text-white font-bold">
+                    2
+                  </div>
+                  <h4 className="text-white font-semibold">Click Generate Workflow</h4>
+                </div>
+                <p className="text-gray-400 text-sm">
+                  When you find a dataset you like, click "Generate Workflow" and the form will 
+                  auto-populate with dataset details.
+                </p>
+              </div>
+              
+              <div className="bg-white/5 rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-nasa-red flex items-center justify-center text-white font-bold">
+                    3
+                  </div>
+                  <h4 className="text-white font-semibold">Specify Analysis Details</h4>
+                </div>
+                <p className="text-gray-400 text-sm">
+                  Fill in the variable you want to analyze (e.g., "J-D" for annual temperature, 
+                  "surface_reflectance" for MODIS data).
+                </p>
+              </div>
+              
+              <div className="bg-white/5 rounded-lg p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-nasa-red flex items-center justify-center text-white font-bold">
+                    4
+                  </div>
+                  <h4 className="text-white font-semibold">Generate & Visualize</h4>
+                </div>
+                <p className="text-gray-400 text-sm">
+                  Click "Generate Notebook" to create analysis code, then "Run & Visualize" to see 
+                  beautiful charts and insights!
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-6 bg-nasa-blue/20 border border-nasa-blue rounded-lg p-4">
+              <p className="text-white text-sm">
+                <strong>💡 Tip:</strong> Start with the GISS Temperature dataset - 
+                it's pre-configured! Just click "Generate Notebook" with the default settings.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
