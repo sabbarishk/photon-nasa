@@ -18,7 +18,7 @@ import argparse
 from typing import List, Dict
 import requests
 from app.services.hf_api import get_embedding
-from app.services.vector_store import get_vector_store
+from app.services.vector_store import VectorStore
 
 # Curated list of high-value NASA dataset collections
 DATASET_CATEGORIES = {
@@ -67,7 +67,7 @@ class BulkIngestionManager:
     """Manages bulk ingestion of NASA datasets."""
     
     def __init__(self, vector_store_path: str = "data/vectors.json"):
-        self.vector_store = get_vector_store(vector_store_path)
+        self.vector_store = VectorStore(vector_store_path)
         self.ingested_count = 0
         self.failed_count = 0
         
@@ -223,7 +223,7 @@ class BulkIngestionManager:
         print(f"   Total failed: {self.failed_count}")
         if self.ingested_count + self.failed_count > 0:
             print(f"   Success rate: {self.ingested_count / (self.ingested_count + self.failed_count) * 100:.1f}%")
-        print(f"   Vector store: {self.vector_store.store_path}")
+        print(f"   Vector store: {self.vector_store.path}")
 
 
 async def main():
