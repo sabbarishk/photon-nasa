@@ -16,6 +16,31 @@ class ExecuteRequest(BaseModel):
     timeout: int = 60  # seconds
 
 
+@router.get("/test-imports")
+def test_imports():
+    """Test what packages are available in this process"""
+    results = {}
+    test_packages = ['pandas', 'numpy', 'matplotlib', 'seaborn', 'xarray']
+    
+    for pkg in test_packages:
+        try:
+            module = __import__(pkg)
+            results[pkg] = {
+                'available': True,
+                'version': getattr(module, '__version__', 'unknown'),
+                'path': getattr(module, '__file__', 'unknown')
+            }
+        except ImportError as e:
+            results[pkg] = {
+                'available': False,
+                'error': str(e)
+            }
+    
+    results['sys.path'] = sys.path
+    results['python_executable'] = sys.executable
+    return results
+
+
 @router.post("/notebook")
 def execute_notebook(req: ExecuteRequest):
     """
@@ -24,6 +49,24 @@ def execute_notebook(req: ExecuteRequest):
     Uses exec() to run code in the same process with all packages available.
     """
     try:
+        # Pre-import all common packages to make them available in exec namespace
+        import pandas as pd
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import matplotlib
+        matplotlib.use('Agg')  # Non-interactive backend
+        
+        # Try to import optional packages
+        try:
+            import seaborn as sns
+        except ImportError:
+            sns = None
+            
+        try:
+            import xarray as xr
+        except ImportError:
+            xr = None
+        
         # Create temporary directory for saving figures
         with tempfile.TemporaryDirectory() as tmpdir:
             # Capture stdout and stderr
@@ -34,10 +77,20 @@ def execute_notebook(req: ExecuteRequest):
             modified_code = req.code.replace("plt.show()", "")
             modified_code += f"\n\n# Save all figures\nimport matplotlib.pyplot as plt\nimport os\nos.chdir(r'{tmpdir}')\nfig_num = 1\nfor fig in [plt.figure(n) for n in plt.get_fignums()]:\n    fig.savefig(f'output_fig_{{fig_num}}.png', dpi=150, bbox_inches='tight')\n    fig_num += 1\nplt.close('all')\n"
             
-            # Create execution namespace with common imports pre-loaded
+            # Create execution namespace WITH pre-imported modules
             exec_globals = {
                 '__name__': '__main__',
                 '__file__': str(Path(tmpdir) / 'notebook_code.py'),
+                'pd': pd,
+                'pandas': pd,
+                'np': np,
+                'numpy': np,
+                'plt': plt,
+                'matplotlib': matplotlib,
+                'sns': sns,
+                'seaborn': sns,
+                'xr': xr,
+                'xarray': xr,
             }
             
             # Execute the code directly in this process
