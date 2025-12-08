@@ -1,13 +1,182 @@
-# cell 1
+# {{ title }}
+# Advanced NetCDF/HDF5 Data Analysis and Visualization
+# Dataset: {{ dataset_url }}
+# Variable: {{ variable }}
+
 import xarray as xr
+import numpy as np
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+from matplotlib.colors import LinearSegmentedColormap
+import warnings
+warnings.filterwarnings('ignore')
+
+# Set visualization style
+plt.rcParams['figure.figsize'] = (16, 12)
+plt.rcParams['font.size'] = 11
+
+print("🌍 Loading NASA NetCDF/HDF5 dataset...")
 url = "{{ dataset_url }}"
 ds = xr.open_dataset(url)
 
-# cell 2
-var = ds.get('{{ variable }}') if '{{ variable }}' in ds else None
-import matplotlib.pyplot as plt
-if var is not None:
+print(f"✅ Dataset loaded successfully")
+print(f"\n📋 Dataset Structure:")
+print(ds)
+
+# Get target variable
+variable = "{{ variable }}"
+if variable not in ds.data_vars:
+    print(f"⚠️  Variable '{variable}' not found. Available variables: {list(ds.data_vars)}")
+    variable = list(ds.data_vars)[0]
+    print(f"Using '{variable}' instead.")
+
+var = ds[variable]
+print(f"\n📊 Variable '{variable}' shape: {var.shape}")
+print(f"Dimensions: {var.dims}")
+print(f"Attributes: {var.attrs}")
+
+# Create comprehensive visualization dashboard
+fig = plt.figure(figsize=(18, 14))
+fig.suptitle('{{ title }} - Geospatial Analysis', fontsize=20, fontweight='bold', y=0.995)
+
+# 1. Global Map - Mean Values
+ax1 = plt.subplot(3, 2, 1, projection=ccrs.Robinson())
+if 'time' in var.dims:
     var_mean = var.mean(dim='time', skipna=True)
-    var_mean.plot()
-    plt.title('{{ title }}')
-    plt.show()
+else:
+    var_mean = var.isel({d: 0 for d in var.dims if d not in ['lat', 'latitude', 'lon', 'longitude']})
+
+# Handle different coordinate names
+lat_dim = next((d for d in var_mean.dims if 'lat' in d.lower()), None)
+lon_dim = next((d for d in var_mean.dims if 'lon' in d.lower()), None)
+
+if lat_dim and lon_dim:
+    im1 = var_mean.plot(ax=ax1, transform=ccrs.PlateCarree(), 
+                        cmap='RdYlBu_r', add_colorbar=True,
+                        cbar_kwargs={'shrink': 0.7, 'label': f'{variable} ({var.attrs.get("units", "")})'})
+    ax1.coastlines(linewidth=0.5)
+    ax1.add_feature(cfeature.BORDERS, linewidth=0.3, alpha=0.5)
+    ax1.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.3)
+    ax1.gridlines(draw_labels=True, alpha=0.3)
+    ax1.set_title(f'Mean {variable} - Global View', fontsize=14, fontweight='bold')
+else:
+    ax1.text(0.5, 0.5, 'Spatial dimensions not found', 
+             ha='center', va='center', transform=ax1.transAxes, fontsize=12)
+
+# 2. Time Series (if temporal data)
+ax2 = plt.subplot(3, 2, 2)
+if 'time' in var.dims:
+    # Global mean time series
+    time_series = var.mean(dim=[d for d in var.dims if d != 'time'], skipna=True)
+    time_series.plot(ax=ax2, linewidth=2, color='#2E86AB')
+    
+    # Add trend line
+    time_vals = np.arange(len(time_series))
+    valid_mask = ~np.isnan(time_series.values)
+    if valid_mask.sum() > 2:
+        z = np.polyfit(time_vals[valid_mask], time_series.values[valid_mask], 1)
+        p = np.poly1d(z)
+        ax2.plot(time_series.time, p(time_vals), '--', color='#A23B72', 
+                linewidth=2, alpha=0.7, label='Trend')
+        ax2.legend()
+    
+    ax2.set_title(f'{variable} - Global Mean Time Series', fontsize=14, fontweight='bold')
+    ax2.set_xlabel('Time', fontsize=12)
+    ax2.set_ylabel(f'{variable} ({var.attrs.get("units", "")})', fontsize=12)
+    ax2.grid(True, alpha=0.3)
+else:
+    ax2.text(0.5, 0.5, 'No time dimension', 
+             ha='center', va='center', transform=ax2.transAxes, fontsize=12)
+
+# 3. Latitude Profile
+ax3 = plt.subplot(3, 2, 3)
+if lat_dim:
+    # Zonal mean (average across longitude)
+    dims_to_mean = [d for d in var.dims if d != lat_dim]
+    zonal_mean = var.mean(dim=dims_to_mean, skipna=True)
+    zonal_mean.plot(ax=ax3, linewidth=2, color='#06A77D')
+    ax3.set_title('Zonal Mean Profile', fontsize=14, fontweight='bold')
+    ax3.set_xlabel('Latitude', fontsize=12)
+    ax3.set_ylabel(f'{variable} ({var.attrs.get("units", "")})', fontsize=12)
+    ax3.grid(True, alpha=0.3)
+    ax3.axhline(y=zonal_mean.mean().values, color='red', linestyle='--', 
+                linewidth=2, alpha=0.7, label='Global Mean')
+    ax3.legend()
+else:
+    ax3.text(0.5, 0.5, 'Latitude dimension not found', 
+             ha='center', va='center', transform=ax3.transAxes, fontsize=12)
+
+# 4. Distribution Histogram
+ax4 = plt.subplot(3, 2, 4)
+var_flat = var.values.flatten()
+var_flat = var_flat[~np.isnan(var_flat)]
+ax4.hist(var_flat, bins=100, color='#8338EC', alpha=0.7, edgecolor='black')
+ax4.set_title('Value Distribution', fontsize=14, fontweight='bold')
+ax4.set_xlabel(f'{variable} ({var.attrs.get("units", "")})', fontsize=12)
+ax4.set_ylabel('Frequency', fontsize=12)
+ax4.grid(True, alpha=0.3, axis='y')
+# Add statistics
+mean_val = np.mean(var_flat)
+median_val = np.median(var_flat)
+ax4.axvline(mean_val, color='red', linestyle='--', linewidth=2, label=f'Mean: {mean_val:.4f}')
+ax4.axvline(median_val, color='green', linestyle='--', linewidth=2, label=f'Median: {median_val:.4f}')
+ax4.legend()
+
+# 5. Regional Focus Map (if spatial data)
+ax5 = plt.subplot(3, 2, 5, projection=ccrs.PlateCarree())
+if lat_dim and lon_dim:
+    # Focus on a specific region (adjust as needed)
+    var_mean.plot(ax=ax5, transform=ccrs.PlateCarree(), 
+                  cmap='viridis', add_colorbar=True,
+                  cbar_kwargs={'shrink': 0.7})
+    ax5.coastlines(linewidth=0.8)
+    ax5.add_feature(cfeature.BORDERS, linewidth=0.5)
+    ax5.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.2)
+    ax5.add_feature(cfeature.OCEAN, facecolor='lightblue', alpha=0.2)
+    ax5.gridlines(draw_labels=True, alpha=0.5)
+    ax5.set_title(f'{variable} - Regional Detail', fontsize=14, fontweight='bold')
+else:
+    ax5.text(0.5, 0.5, 'Spatial dimensions not found', 
+             ha='center', va='center', transform=ax5.transAxes, fontsize=12)
+
+# 6. Statistical Summary
+ax6 = plt.subplot(3, 2, 6)
+ax6.axis('off')
+stats_data = [
+    ['Metric', 'Value'],
+    ['Mean', f'{np.nanmean(var.values):.6f}'],
+    ['Median', f'{np.nanmedian(var.values):.6f}'],
+    ['Std Dev', f'{np.nanstd(var.values):.6f}'],
+    ['Min', f'{np.nanmin(var.values):.6f}'],
+    ['Max', f'{np.nanmax(var.values):.6f}'],
+    ['Range', f'{np.nanmax(var.values) - np.nanmin(var.values):.6f}'],
+    ['Valid Points', f'{np.sum(~np.isnan(var.values))}'],
+    ['Missing Points', f'{np.sum(np.isnan(var.values))}'],
+    ['Data Coverage', f'{np.sum(~np.isnan(var.values))/var.size*100:.1f}%'],
+]
+table = ax6.table(cellText=stats_data, cellLoc='left', loc='center',
+                  colWidths=[0.5, 0.5])
+table.auto_set_font_size(False)
+table.set_fontsize(11)
+table.scale(1, 2)
+# Style header row
+for i in range(2):
+    table[(0, i)].set_facecolor('#2E86AB')
+    table[(0, i)].set_text_props(weight='bold', color='white')
+# Alternate row colors
+for i in range(1, len(stats_data)):
+    color = '#F0F0F0' if i % 2 == 0 else 'white'
+    table[(i, 0)].set_facecolor(color)
+    table[(i, 1)].set_facecolor(color)
+
+ax6.set_title('Statistical Summary', fontsize=14, fontweight='bold', pad=20)
+
+plt.tight_layout()
+plt.savefig('nasa_netcdf_analysis.png', dpi=300, bbox_inches='tight')
+print("\n✅ Visualization saved as 'nasa_netcdf_analysis.png'")
+plt.show()
+
+# Close dataset
+ds.close()
+print("\n🎉 Analysis complete!")

@@ -1,12 +1,182 @@
-# cell 1
+# {{ title }}
+# Advanced NASA Data Analysis and Visualization
+# Dataset: {{ dataset_url }}
+# Variable: {{ variable }}
+
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
+import warnings
+warnings.filterwarnings('ignore')
+
+# Set style for beautiful plots
+plt.style.use('seaborn-v0_8-darkgrid')
+sns.set_palette("husl")
+plt.rcParams['figure.figsize'] = (14, 8)
+plt.rcParams['font.size'] = 11
+
+# Load and prepare data
+print("📊 Loading NASA dataset...")
 url = "{{ dataset_url }}"
 df = pd.read_csv(url)
-df['time'] = pd.to_datetime(df.get('time', df.get('date')))
-df = df.set_index('time')
 
-# cell 2
-series = df["{{ variable }}"]
-import matplotlib.pyplot as plt
-series.resample("M").mean().plot(title="{{ title }}")
+# Handle time/date columns
+time_col = next((col for col in df.columns if col.lower() in ['time', 'date', 'year', 'datetime']), None)
+if time_col:
+    df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
+    df = df.set_index(time_col).sort_index()
+
+print(f"✅ Loaded {len(df)} records")
+print(f"\n📋 Dataset Info:")
+print(df.info())
+print(f"\n📈 Statistical Summary:")
+print(df.describe())
+
+# Main variable analysis
+variable = "{{ variable }}"
+if variable not in df.columns:
+    print(f"⚠️  Variable '{variable}' not found. Available columns: {list(df.columns)}")
+    variable = df.select_dtypes(include=[np.number]).columns[0]
+    print(f"Using '{variable}' instead.")
+
+data = df[variable].dropna()
+
+# Create comprehensive visualization dashboard
+fig = plt.figure(figsize=(16, 12))
+fig.suptitle('{{ title }} - Comprehensive Analysis', fontsize=18, fontweight='bold', y=0.995)
+
+# 1. Time Series Plot
+ax1 = plt.subplot(3, 2, 1)
+data.plot(ax=ax1, linewidth=2, color='#2E86AB', alpha=0.8)
+ax1.set_title(f'{variable} Over Time', fontsize=14, fontweight='bold')
+ax1.set_xlabel('Time', fontsize=12)
+ax1.set_ylabel(variable, fontsize=12)
+ax1.grid(True, alpha=0.3)
+
+# Add trend line
+z = np.polyfit(range(len(data)), data.values, 1)
+p = np.poly1d(z)
+ax1.plot(data.index, p(range(len(data))), "--", color='#A23B72', linewidth=2, alpha=0.7, label='Trend')
+ax1.legend()
+
+# 2. Monthly/Yearly Aggregation
+ax2 = plt.subplot(3, 2, 2)
+if len(data) > 365:
+    monthly_avg = data.resample('M').mean()
+    monthly_avg.plot(kind='bar', ax=ax2, color='#F18F01', alpha=0.7)
+    ax2.set_title('Monthly Average', fontsize=14, fontweight='bold')
+    ax2.set_xlabel('Month', fontsize=12)
+else:
+    data.plot(kind='bar', ax=ax2, color='#F18F01', alpha=0.7)
+    ax2.set_title('Values Distribution', fontsize=14, fontweight='bold')
+ax2.set_ylabel(variable, fontsize=12)
+ax2.grid(True, alpha=0.3, axis='y')
+plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha='right')
+
+# 3. Distribution (Histogram + KDE)
+ax3 = plt.subplot(3, 2, 3)
+data.hist(bins=50, ax=ax3, color='#06A77D', alpha=0.6, edgecolor='black')
+ax3_twin = ax3.twinx()
+data.plot(kind='kde', ax=ax3_twin, color='#D62828', linewidth=3)
+ax3.set_title('Distribution Analysis', fontsize=14, fontweight='bold')
+ax3.set_xlabel(variable, fontsize=12)
+ax3.set_ylabel('Frequency', fontsize=12)
+ax3_twin.set_ylabel('Density', fontsize=12)
+ax3.grid(True, alpha=0.3)
+
+# 4. Box Plot (Outlier Detection)
+ax4 = plt.subplot(3, 2, 4)
+bp = ax4.boxplot([data.values], vert=True, patch_artist=True, 
+                  labels=[variable],
+                  boxprops=dict(facecolor='#8338EC', alpha=0.6),
+                  medianprops=dict(color='#FF006E', linewidth=2),
+                  whiskerprops=dict(color='#3A86FF', linewidth=1.5))
+ax4.set_title('Box Plot - Outlier Detection', fontsize=14, fontweight='bold')
+ax4.set_ylabel(variable, fontsize=12)
+ax4.grid(True, alpha=0.3, axis='y')
+
+# Calculate outliers
+Q1 = data.quantile(0.25)
+Q3 = data.quantile(0.75)
+IQR = Q3 - Q1
+outliers = data[(data < (Q1 - 1.5 * IQR)) | (data > (Q3 + 1.5 * IQR))]
+ax4.text(0.5, 0.95, f'Outliers: {len(outliers)} ({len(outliers)/len(data)*100:.1f}%)',
+         transform=ax4.transAxes, ha='center', va='top', fontsize=10,
+         bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
+# 5. Rolling Statistics
+ax5 = plt.subplot(3, 2, 5)
+if len(data) > 30:
+    window = min(30, len(data) // 10)
+    rolling_mean = data.rolling(window=window).mean()
+    rolling_std = data.rolling(window=window).std()
+    
+    ax5.plot(data.index, data.values, label='Original', alpha=0.3, color='gray')
+    ax5.plot(rolling_mean.index, rolling_mean.values, label=f'{window}-period Moving Avg', 
+             linewidth=2, color='#FF006E')
+    ax5.fill_between(rolling_mean.index, 
+                     rolling_mean - rolling_std, 
+                     rolling_mean + rolling_std,
+                     alpha=0.2, color='#3A86FF', label='±1 Std Dev')
+    ax5.set_title('Rolling Statistics', fontsize=14, fontweight='bold')
+    ax5.set_xlabel('Time', fontsize=12)
+    ax5.set_ylabel(variable, fontsize=12)
+    ax5.legend()
+    ax5.grid(True, alpha=0.3)
+else:
+    ax5.text(0.5, 0.5, 'Insufficient data for rolling statistics', 
+             ha='center', va='center', transform=ax5.transAxes, fontsize=12)
+
+# 6. Statistical Summary Table
+ax6 = plt.subplot(3, 2, 6)
+ax6.axis('off')
+stats_data = [
+    ['Metric', 'Value'],
+    ['Mean', f'{data.mean():.4f}'],
+    ['Median', f'{data.median():.4f}'],
+    ['Std Dev', f'{data.std():.4f}'],
+    ['Min', f'{data.min():.4f}'],
+    ['Max', f'{data.max():.4f}'],
+    ['Range', f'{data.max() - data.min():.4f}'],
+    ['Skewness', f'{data.skew():.4f}'],
+    ['Kurtosis', f'{data.kurtosis():.4f}'],
+    ['Count', f'{len(data)}'],
+]
+table = ax6.table(cellText=stats_data, cellLoc='left', loc='center',
+                  colWidths=[0.5, 0.5])
+table.auto_set_font_size(False)
+table.set_fontsize(11)
+table.scale(1, 2)
+# Style header row
+for i in range(2):
+    table[(0, i)].set_facecolor('#2E86AB')
+    table[(0, i)].set_text_props(weight='bold', color='white')
+# Alternate row colors
+for i in range(1, len(stats_data)):
+    color = '#F0F0F0' if i % 2 == 0 else 'white'
+    table[(i, 0)].set_facecolor(color)
+    table[(i, 1)].set_facecolor(color)
+
+ax6.set_title('Statistical Summary', fontsize=14, fontweight='bold', pad=20)
+
+plt.tight_layout()
+plt.savefig('nasa_analysis_dashboard.png', dpi=300, bbox_inches='tight')
+print("\n✅ Visualization saved as 'nasa_analysis_dashboard.png'")
 plt.show()
+
+# Additional Analysis: Correlation Matrix (if multiple numeric columns)
+numeric_cols = df.select_dtypes(include=[np.number]).columns
+if len(numeric_cols) > 1:
+    fig, ax = plt.subplots(figsize=(12, 10))
+    correlation_matrix = df[numeric_cols].corr()
+    sns.heatmap(correlation_matrix, annot=True, fmt='.2f', cmap='coolwarm', 
+                center=0, square=True, ax=ax, cbar_kws={'shrink': 0.8})
+    ax.set_title('Correlation Matrix - All Variables', fontsize=16, fontweight='bold', pad=20)
+    plt.tight_layout()
+    plt.savefig('correlation_matrix.png', dpi=300, bbox_inches='tight')
+    print("✅ Correlation matrix saved as 'correlation_matrix.png'")
+    plt.show()
+
+print("\n🎉 Analysis complete!")

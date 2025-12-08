@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { FileCode, Loader2, Download, Eye, CheckCircle } from 'lucide-react'
-import { generateWorkflow } from '../services/api'
+import { FileCode, Loader2, Download, Eye, CheckCircle, Play, Image as ImageIcon } from 'lucide-react'
+import { generateWorkflow, executeNotebook } from '../services/api'
 
 function WorkflowGenerator() {
   const [formData, setFormData] = useState({
@@ -11,6 +11,8 @@ function WorkflowGenerator() {
   })
   const [notebook, setNotebook] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [executing, setExecuting] = useState(false)
+  const [executionResult, setExecutionResult] = useState(null)
   const [error, setError] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
 
@@ -33,6 +35,40 @@ function WorkflowGenerator() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const executeCode = async () => {
+    if (!notebook || !notebook.notebook) return
+    
+    setExecuting(true)
+    setError(null)
+    setExecutionResult(null)
+    
+    try {
+      // Parse notebook to get code
+      const nb = typeof notebook.notebook === 'string' 
+        ? JSON.parse(notebook.notebook) 
+        : notebook.notebook
+      
+      // Extract code from cells
+      const code = nb.cells
+        .filter(cell => cell.cell_type === 'code')
+        .map(cell => Array.isArray(cell.source) ? cell.source.join('') : cell.source)
+        .join('\n\n')
+      
+      // Execute code
+      const result = await executeNotebook(code, 120)  // 2 minute timeout
+      setExecutionResult(result)
+      
+      if (result.exit_code !== 0 && result.stderr) {
+        setError(`Execution completed with warnings: ${result.stderr.substring(0, 200)}`)
+      }
+    } catch (err) {
+      setError('Failed to execute notebook. Make sure the dataset URL is accessible.')
+      console.error(err)
+    } finally {
+      setExecuting(false)
     }
   }
 
@@ -187,17 +223,43 @@ function WorkflowGenerator() {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                   <button
                     onClick={downloadNotebook}
-                    className="flex-1 bg-nasa-blue hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
+                    className="flex-1 min-w-[150px] bg-nasa-blue hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
                   >
                     <Download className="w-5 h-5" />
                     Download .ipynb
                   </button>
+                  <button
+                    onClick={executeCode}
+                    disabled={executing}
+                    className="flex-1 min-w-[150px] bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {executing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Executing...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-5 h-5" />
+                        Run & Visualize
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowPreview(!showPreview)}
+                    className="flex-1 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
+                  >
+                    <Eye className="w-5 h-5" />
+                    {showPreview ? 'Hide' : 'Preview'}
+                  </button>
+                </div>
+
                 {showPreview && notebook.notebook && (
                   <div className="mt-4">
-                    <h4 className="text-white font-semibold mb-2">Preview:</h4>
+                    <h4 className="text-white font-semibold mb-2">Code Preview:</h4>
                     <div className="bg-black/50 rounded-lg p-4 max-h-96 overflow-auto">
                       <pre className="text-xs text-gray-300 whitespace-pre-wrap">
                         {typeof notebook.notebook === 'string' 
@@ -206,14 +268,50 @@ function WorkflowGenerator() {
                       </pre>
                     </div>
                   </div>
-                )}howPreview && notebook.notebook && (
-                  <div className="mt-4">
-                    <h4 className="text-white font-semibold mb-2">Preview:</h4>
-                    <div className="bg-black/50 rounded-lg p-4 max-h-96 overflow-auto">
-                      <pre className="text-xs text-gray-300 whitespace-pre-wrap">
-                        {JSON.stringify(notebook.notebook, null, 2)}
-                      </pre>
+                )}
+
+                {executionResult && (
+                  <div className="mt-4 space-y-4">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <ImageIcon className="w-5 h-5" />
+                      <h4 className="text-white font-semibold">Visualizations Generated!</h4>
                     </div>
+
+                    {/* Display generated images */}
+                    {executionResult.images && executionResult.images.length > 0 && (
+                      <div className="space-y-4">
+                        {executionResult.images.map((img, idx) => (
+                          <div key={idx} className="bg-white/5 rounded-lg p-4">
+                            <p className="text-sm text-gray-400 mb-2">{img.filename}</p>
+                            <img 
+                              src={img.data} 
+                              alt={`Visualization ${idx + 1}`}
+                              className="w-full rounded-lg border border-gray-600"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Display console output if available */}
+                    {executionResult.stdout && (
+                      <div className="bg-black/50 rounded-lg p-4">
+                        <h5 className="text-white font-semibold mb-2 text-sm">Output:</h5>
+                        <pre className="text-xs text-green-400 whitespace-pre-wrap max-h-48 overflow-auto">
+                          {executionResult.stdout}
+                        </pre>
+                      </div>
+                    )}
+
+                    {/* Display errors if any */}
+                    {executionResult.stderr && executionResult.exit_code !== 0 && (
+                      <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
+                        <h5 className="text-red-400 font-semibold mb-2 text-sm">Errors:</h5>
+                        <pre className="text-xs text-red-300 whitespace-pre-wrap max-h-48 overflow-auto">
+                          {executionResult.stderr}
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

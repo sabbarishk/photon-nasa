@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -43,6 +43,19 @@ export const checkHealth = async () => {
     return response.data
   } catch (error) {
     console.error('Health check error:', error)
+    throw error
+  }
+}
+
+export const executeNotebook = async (code, timeout = 60) => {
+  try {
+    const response = await api.post('/execute/notebook', {
+      code,
+      timeout
+    })
+    return response.data
+  } catch (error) {
+    console.error('Notebook execution error:', error)
     throw error
   }
 }
