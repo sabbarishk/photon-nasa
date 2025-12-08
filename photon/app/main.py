@@ -5,7 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 import time
 import logging
 
-from app.routes import query, workflow, health
+from app.routes import query, workflow, health, execute
 from app.services.auth import is_valid_key
 import os
 from app.services.redis_rate_limiter import RedisRateLimiter
@@ -27,6 +27,7 @@ logger = logging.getLogger('photon')
 
 app.include_router(query.router, prefix="/query", tags=["query"])
 app.include_router(workflow.router, prefix="/workflow", tags=["workflow"])
+app.include_router(execute.router, prefix="/execute", tags=["execute"])
 app.include_router(health.router, prefix="", tags=["health"])
 
 
