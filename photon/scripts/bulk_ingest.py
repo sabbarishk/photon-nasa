@@ -17,7 +17,7 @@ import asyncio
 import argparse
 from typing import List, Dict
 import requests
-from app.services.embedding import EmbeddingService
+from app.services.hf_api import get_embedding
 from app.services.vector_store import get_vector_store
 
 # Curated list of high-value NASA dataset collections
@@ -67,7 +67,6 @@ class BulkIngestionManager:
     """Manages bulk ingestion of NASA datasets."""
     
     def __init__(self, vector_store_path: str = "data/vectors.json"):
-        self.embedding_service = EmbeddingService()
         self.vector_store = get_vector_store(vector_store_path)
         self.ingested_count = 0
         self.failed_count = 0
@@ -140,22 +139,21 @@ class BulkIngestionManager:
             # Create summary text for embedding
             summary_text = f"{dataset['title']}. {dataset['summary']}"
             
-            # Generate embedding
-            embedding = await self.embedding_service.get_embedding(summary_text)
+            # Generate embedding (synchronous call)
+            embedding = get_embedding(summary_text)
+            
+            # Prepare metadata
+            meta = {
+                "title": dataset["title"],
+                "summary": dataset["summary"],
+                "landing_page": dataset["landing_page"],
+                "dataset_url": dataset["dataset_url"],
+                "format": dataset["format"],
+                "keywords": dataset["keywords"],
+            }
             
             # Add to vector store
-            self.vector_store.add(
-                id=dataset["id"],
-                embedding=embedding,
-                metadata={
-                    "title": dataset["title"],
-                    "summary": dataset["summary"],
-                    "landing_page": dataset["landing_page"],
-                    "dataset_url": dataset["dataset_url"],
-                    "format": dataset["format"],
-                    "keywords": dataset["keywords"],
-                }
-            )
+            self.vector_store.add(dataset["id"], meta, embedding)
             
             return True
             
