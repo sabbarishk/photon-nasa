@@ -5,6 +5,7 @@ import tempfile
 import os
 import base64
 import json
+import sys
 from pathlib import Path
 
 router = APIRouter()
@@ -22,6 +23,9 @@ def execute_notebook(req: ExecuteRequest):
     Returns stdout, stderr, and base64-encoded images.
     """
     try:
+        # Use the same Python executable that's running this FastAPI server
+        python_executable = sys.executable
+        
         # Create temporary directory for execution
         with tempfile.TemporaryDirectory() as tmpdir:
             # Write code to file
@@ -33,9 +37,9 @@ def execute_notebook(req: ExecuteRequest):
             
             code_file.write_text(modified_code, encoding='utf-8')
             
-            # Execute code
+            # Execute code using the same Python that runs this server (with all installed packages)
             result = subprocess.run(
-                ['python', str(code_file)],
+                [python_executable, str(code_file)],
                 cwd=tmpdir,
                 capture_output=True,
                 text=True,
