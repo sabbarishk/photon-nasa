@@ -25,6 +25,16 @@ def execute_notebook(req: ExecuteRequest):
     try:
         # Use the same Python executable that's running this FastAPI server
         python_executable = sys.executable
+        print(f"🔍 DEBUG: Using Python: {python_executable}")
+        print(f"🔍 DEBUG: Python version: {sys.version}")
+        
+        # Ensure subprocess uses the same environment
+        env = os.environ.copy()
+        # Add site-packages to PYTHONPATH
+        import site
+        site_packages = site.getsitepackages()
+        if site_packages:
+            env['PYTHONPATH'] = os.pathsep.join(site_packages + [env.get('PYTHONPATH', '')])
         
         # Create temporary directory for execution
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -41,6 +51,7 @@ def execute_notebook(req: ExecuteRequest):
             result = subprocess.run(
                 [python_executable, str(code_file)],
                 cwd=tmpdir,
+                env=env,  # Pass environment with PYTHONPATH
                 capture_output=True,
                 text=True,
                 timeout=req.timeout
