@@ -28,13 +28,12 @@ def execute_notebook(req: ExecuteRequest):
         print(f"🔍 DEBUG: Using Python: {python_executable}")
         print(f"🔍 DEBUG: Python version: {sys.version}")
         
-        # Ensure subprocess uses the same environment
-        env = os.environ.copy()
-        # Add site-packages to PYTHONPATH
-        import site
-        site_packages = site.getsitepackages()
-        if site_packages:
-            env['PYTHONPATH'] = os.pathsep.join(site_packages + [env.get('PYTHONPATH', '')])
+        # Get venv path
+        venv_path = Path(sys.executable).parent.parent
+        activate_script = venv_path / "Scripts" / "activate.bat"
+        
+        print(f"🔍 DEBUG: Venv path: {venv_path}")
+        print(f"🔍 DEBUG: Activate script exists: {activate_script.exists()}")
         
         # Create temporary directory for execution
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -47,15 +46,58 @@ def execute_notebook(req: ExecuteRequest):
             
             code_file.write_text(modified_code, encoding='utf-8')
             
-            # Execute code using the same Python that runs this server (with all installed packages)
-            result = subprocess.run(
-                [python_executable, str(code_file)],
-                cwd=tmpdir,
-                env=env,  # Pass environment with PYTHONPATH
-                capture_output=True,
-                text=True,
-                timeout=req.timeout
-            )
+            # Execute with venv activation if on Windows
+            if activate_script.exists():
+                # Create a batch file that activates venv and runs Python
+                batch_file = Path(tmpdir) / "run_code.bat"
+                batch_content = f'''@echo off
+call "{activate_script}"
+cd /d "{tmpdir}"
+"{python_executable}" "{code_file}"
+'''
+                batch_file.write_text(batch_content, encoding='utf-8')
+                
+                result = subprocess.run(
+                    [str(batch_file)],
+                    cwd=tmpdir,
+                    capture_output=True,
+                    text=True,
+                    timeout=req.timeout,
+                    shell=True
+                )
+            else:
+                # Fallback: comprehensive environment setup
+                env = os.environ.copy()
+                import site
+                
+                # Add all possible paths
+                paths_to_add = []
+                paths_to_add.extend(site.getsitepackages())
+                paths_to_add.extend(sys.path)
+                
+                # Add venv's Lib and site-packages explicitly
+                venv_lib = venv_path / "Lib"
+                venv_site = venv_path / "Lib" / "site-packages"
+                if venv_lib.exists():
+                    paths_to_add.append(str(venv_lib))
+                if venv_site.exists():
+                    paths_to_add.append(str(venv_site))
+                
+                # Set PYTHONPATH
+                existing_path = env.get('PYTHONPATH', '')
+                all_paths = [p for p in paths_to_add if p] + ([existing_path] if existing_path else [])
+                env['PYTHONPATH'] = os.pathsep.join(all_paths)
+                
+                print(f"🔍 DEBUG: PYTHONPATH set to: {env['PYTHONPATH'][:200]}...")
+                
+                result = subprocess.run(
+                    [python_executable, str(code_file)],
+                    cwd=tmpdir,
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=req.timeout
+                )
             
             # Collect outputs
             output = {
