@@ -117,7 +117,7 @@ function Search() {
                         title: result.meta?.title || result.meta?.text || result.id,
                         format: result.meta?.format || 'csv',
                         summary: result.meta?.description || result.meta?.summary || '',
-                        variable: '', // Will be filled by user
+                        variable: result.meta?.variable || '',
                       }
                       
                       selectDataset(datasetInfo)
