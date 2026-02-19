@@ -1,7 +1,7 @@
 param(
     [switch]$SkipAuth,
     [int]$Port = 8000,
-    [bool]$Reload = $true
+    [switch]$Reload
 )
 
 # Activate venv if present

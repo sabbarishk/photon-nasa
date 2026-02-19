@@ -15,105 +15,149 @@ plt.style.use('seaborn-v0_8-darkgrid')
 plt.rcParams['figure.figsize'] = (14, 10)
 plt.rcParams['font.size'] = 11
 
-# ─────────────────────────────────────────────
-# STEP 1: Load Data
-# STEP 1: Load Data
-# ─────────────────────────────────────────────
+# ============================================================
+# STEP 1: LOAD AND VALIDATE DATA
+# ============================================================
 print("📊 Loading NASA dataset...")
-url = "{{ dataset_url }}"
 
-df = None
+import urllib.request
+import io
 
-# Strategy 1 – standard CSV
+def load_nasa_csv(url, variable_name):
+    """Smart NASA CSV loader with validation."""
+    
+    # Step 1: Fetch raw content and validate it's actually CSV
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            content_type = response.headers.get('Content-Type', '')
+            raw_bytes = response.read()
+            raw_text = raw_bytes.decode('utf-8', errors='replace')
+    except Exception as e:
+        raise ValueError(f"❌ Cannot fetch URL: {url}\nError: {e}")
+    
+    # Step 2: Check if response is HTML (wrong URL)
+    stripped = raw_text.strip()
+    if stripped.startswith('<!') or stripped.startswith('<html') or stripped.startswith('<HTML'):
+        raise ValueError(
+            f"❌ URL returned an HTML page, not CSV data.\n"
+            f"URL: {url}\n"
+            f"This dataset may require authentication or the direct download URL is different.\n"
+            f"Try finding the direct .csv download link from the dataset page."
+        )
+    
+    # Step 3: Check for XML/JSON
+    if stripped.startswith('<?xml') or stripped.startswith('<feed') or stripped.startswith('{'):
+        raise ValueError(
+            f"❌ URL returned XML/JSON, not CSV data.\n"
+            f"URL: {url}\n"
+            f"Please use the direct CSV download URL."
+        )
+    
+    print(f"✅ Content looks like CSV data ({len(raw_text):,} bytes)")
+    
+    # Step 4: Detect header rows (NASA CSVs often have comment lines)
+    lines = raw_text.split('\n')
+    skiprows = 0
+    for i, line in enumerate(lines[:30]):
+        line = line.strip()
+        # Skip comment lines, empty lines, and metadata lines
+        if (line.startswith('#') or 
+            line.startswith('%') or 
+            line == '' or
+            (len(line) > 0 and not any(c.isdigit() or c == ',' or c == '\t' for c in line[:20]))):
+            skiprows = i + 1
+        else:
+            break
+    
+    if skiprows > 0:
+        print(f"ℹ️  Skipping {skiprows} header/comment rows")
+    
+    # Step 5: Try multiple CSV parsing strategies
+    strategies = [
+        {"sep": ",",  "skiprows": skiprows,     "on_bad_lines": "skip"},
+        {"sep": "\t", "skiprows": skiprows,     "on_bad_lines": "skip"},
+        {"sep": ",",  "skiprows": skiprows + 1, "on_bad_lines": "skip"},
+        {"sep": None, "skiprows": skiprows,     "on_bad_lines": "skip", "engine": "python"},
+        {"sep": ",",  "skiprows": 0,            "on_bad_lines": "skip"},
+    ]
+    
+    df = None
+    for i, params in enumerate(strategies):
+        try:
+            test_df = pd.read_csv(io.StringIO(raw_text), **params)
+            # Validate: must have >1 row, >1 col, and not HTML
+            if len(test_df) > 1 and len(test_df.columns) > 0:
+                col_names = [str(c) for c in test_df.columns]
+                if not any('DOCTYPE' in c or '<html' in c.lower() for c in col_names):
+                    df = test_df
+                    print(f"✅ Strategy {i+1} succeeded: {df.shape[0]} rows × {df.shape[1]} cols")
+                    break
+        except Exception:
+            continue
+    
+    if df is None:
+        raise ValueError(
+            f"❌ Could not parse CSV data from URL.\n"
+            f"First 200 chars of content:\n{raw_text[:200]}"
+        )
+    
+    # Step 6: Clean column names
+    df.columns = [str(c).strip().replace('\r', '') for c in df.columns]
+    
+    # Step 7: Handle GISS-style MultiIndex (column names are in first data row)
+    first_row = df.iloc[0].astype(str).tolist()
+    if all(v.replace('.','').replace('-','').replace('*','').isalpha() for v in first_row[:5] if v not in ['nan','']):
+        print("ℹ️  Detected header row in data — extracting column names...")
+        df.columns = first_row
+        df = df.iloc[1:].reset_index(drop=True)
+        print(f"✅ Columns extracted: {list(df.columns[:8])}...")
+    
+    # Step 8: Convert numeric columns
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col].astype(str).str.strip().str.replace('***', 'nan'), errors='ignore')
+    
+    # Step 9: Find the variable column
+    target_col = None
+    # Exact match first
+    if variable_name in df.columns:
+        target_col = variable_name
+    else:
+        # Case-insensitive partial match
+        var_lower = variable_name.lower()
+        for col in df.columns:
+            if var_lower in str(col).lower() or str(col).lower() in var_lower:
+                target_col = col
+                break
+    
+    if target_col is None:
+        # Use first numeric column
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        if numeric_cols:
+            target_col = numeric_cols[0]
+            print(f"⚠️  Variable '{variable_name}' not found. Using '{target_col}' instead.")
+            print(f"    Available columns: {list(df.columns[:10])}")
+        else:
+            raise ValueError(
+                f"❌ No numeric columns found.\n"
+                f"Available columns: {list(df.columns)}\n"
+                f"Please specify one of these as your variable name."
+            )
+    else:
+        print(f"✅ Using column: '{target_col}'")
+    
+    return df, target_col
+
+# Load the data
 try:
-    df = pd.read_csv(url)
-    if isinstance(df.index, pd.MultiIndex):
-        col_names = list(df.index[0])
-        data_rows = [list(idx) for idx in df.index[1:]]
-        df = pd.DataFrame(data_rows, columns=col_names)
-    print(f"✅ Loaded {len(df)} rows, {len(df.columns)} columns (standard)")
-except Exception:
-    pass
-
-# Strategy 2 – skip comment/header rows
-if df is None or df.empty:
-    for skip in [1, 2, 3, 5, 7]:
-        try:
-            df = pd.read_csv(url, skiprows=skip)
-            if not df.empty:
-                print(f"✅ Loaded {len(df)} rows (skiprows={skip})")
-                break
-        except Exception:
-            pass
-
-# Strategy 3 – skip bad lines
-if df is None or df.empty:
-    try:
-        df = pd.read_csv(url, on_bad_lines='skip', engine='python')
-        print(f"✅ Loaded {len(df)} rows (bad-lines skipped)")
-    except Exception:
-        pass
-
-# Strategy 4 – whitespace / tab separator
-if df is None or df.empty:
-    for sep in ['\t', r'\s+', '|', ';']:
-        try:
-            df = pd.read_csv(url, sep=sep, engine='python')
-            if not df.empty and len(df.columns) > 1:
-                print(f"✅ Loaded {len(df)} rows (sep={repr(sep)})")
-                break
-        except Exception:
-            pass
-
-# Strategy 5 – skip rows + bad-lines together
-if df is None or df.empty:
-    for skip in range(1, 15):
-        try:
-            df = pd.read_csv(url, skiprows=skip, on_bad_lines='skip', engine='python')
-            if not df.empty and len(df.columns) > 1:
-                print(f"✅ Loaded {len(df)} rows (skiprows={skip} + bad-lines skipped)")
-                break
-        except Exception:
-            pass
-
-# Strategy 6 – read raw lines, find where data starts
-if df is None or df.empty:
-    try:
-        import urllib.request
-        from io import StringIO
-        with urllib.request.urlopen(url, timeout=30) as resp:
-            raw = resp.read().decode('utf-8', errors='replace')
-        lines = [l for l in raw.splitlines() if l.strip() and not l.strip().startswith(('#', '%', '!'))]
-        if lines:
-            df = pd.read_csv(StringIO('\n'.join(lines)), on_bad_lines='skip', engine='python')
-            print(f"✅ Loaded {len(df)} rows (raw line filtering)")
-    except Exception:
-        pass
-
-# Give up gracefully
-if df is None or df.empty:
-    print("""
-❌ Could not parse dataset.
-
-Possible reasons:
-  • URL points to a landing page rather than a raw data file
-  • File requires authentication or is not publicly accessible
-  • Format is NetCDF / HDF5 (choose the matching format in the generator)
-  • Network error
-
-Please verify the dataset URL is a direct link to a CSV/text file.
-""")
-    raise SystemExit(1)
-
-# ─────────────────────────────────────────────
-# STEP 2: Clean & Detect Columns
-# ─────────────────────────────────────────────
-df.columns = [str(c).strip() for c in df.columns]
-df.dropna(how='all', axis=1, inplace=True)
+    df, target_col = load_nasa_csv(url, variable_name)
+except ValueError as e:
+    print(str(e))
+    raise
 
 print(f"\n📋 Dataset shape: {df.shape}")
-print(f"Columns: {list(df.columns)[:8]}{'...' if len(df.columns) > 8 else ''}")
-print(df.head(3).to_string())
+print(f"📌 Target variable: {target_col}")
+print(f"📊 Sample values: {df[target_col].dropna().head(5).tolist()}")
 
 # Detect time / year column
 time_col = None
