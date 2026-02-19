@@ -15,4 +15,4 @@ Write-Host "Starting Photon backend on http://127.0.0.1:8001" -ForegroundColor G
 Write-Host "Press Ctrl+C to stop" -ForegroundColor Yellow
 Write-Host ""
 
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000

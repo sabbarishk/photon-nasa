@@ -9,6 +9,7 @@ Behavior:
 
 import os
 import requests
+import threading
 from typing import List, Optional
 
 HF_TOKEN = os.getenv("HF_TOKEN")
@@ -16,14 +17,18 @@ HF_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else None
 
 # Cached local model (loaded once, reused for all calls)
 _local_model = None
+_model_lock = threading.Lock()
 
 
 def _get_local_model():
     """Load and cache the local sentence-transformers model."""
     global _local_model
-    if _local_model is None:
-        from sentence_transformers import SentenceTransformer
-        _local_model = SentenceTransformer("all-MiniLM-L6-v2")
+    if _local_model is not None:
+        return _local_model
+    with _model_lock:
+        if _local_model is None:
+            from sentence_transformers import SentenceTransformer
+            _local_model = SentenceTransformer("all-MiniLM-L6-v2")
     return _local_model
 
 
@@ -35,14 +40,15 @@ def get_embedding(text: str, model: str = "sentence-transformers/all-MiniLM-L6-v
     Falls back to HF remote API only if local model is unavailable.
     """
     # Always try local first - it's fast (cached), consistent, and free
+    _local_error = None
     try:
         local = _get_local_model()
         emb = local.encode(text)
         return emb.tolist()
-    except ImportError:
-        pass  # sentence-transformers not installed, fall back to remote
-    except Exception:
-        pass  # any other local error, try remote
+    except ImportError as e:
+        _local_error = e  # sentence-transformers not installed, fall back to remote
+    except Exception as e:
+        _local_error = e  # any other local error, try remote
 
     # Fallback: HF remote (only if token set)
     if HF_TOKEN:
@@ -64,7 +70,7 @@ def get_embedding(text: str, model: str = "sentence-transformers/all-MiniLM-L6-v
             except Exception:
                 continue
 
-    raise RuntimeError("Embedding failed: install sentence-transformers or set HF_TOKEN")
+    raise RuntimeError(f"Embedding failed: install sentence-transformers or set HF_TOKEN. Local error: {_local_error}")
 
 
 def generate_code(prompt: str, model: str = "Salesforce/codegen-350M-multi", max_tokens: int = 1024) -> str:
