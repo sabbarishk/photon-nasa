@@ -26,11 +26,15 @@ class VectorStore:
         self.path = os.path.normpath(path)
         self._chroma_client = None
         self._chroma_collection = None
+        # In-memory cache for file backend: loaded once, kept hot
+        self._cache = None
         if self.backend == 'file':
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
             if not os.path.exists(self.path):
                 with open(self.path, 'w', encoding='utf-8') as f:
                     json.dump([], f)
+            # Pre-load into memory at startup
+            self._cache = self._load_from_disk()
         else:
             # Placeholder for managed backends. Try to lazy-load client when used.
             if self.backend == 'chroma' and not _chroma_available:
@@ -49,11 +53,8 @@ class VectorStore:
         else:
             pd = os.path.normpath(pd)
             os.makedirs(pd, exist_ok=True)
-            # Prefer an in-process persistent client when a filesystem path is provided.
-            # Some chromadb versions raise on legacy config values; fall back to the simple Client()
             try:
                 settings = Settings(chroma_db_impl="duckdb+parquet", persist_directory=pd)
-                # Attempt to construct a persistent client; if it fails, fall back to simple Client()
                 try:
                     client = chromadb.PersistentClient(settings)
                 except Exception:
@@ -68,19 +69,25 @@ class VectorStore:
         self._chroma_client = client
         self._chroma_collection = col
 
+    def _load_from_disk(self):
+        """Read from JSON file. Used at init and after writes."""
+        try:
+            if os.path.getsize(self.path) == 0:
+                return []
+        except Exception:
+            pass
+        with open(self.path, 'r', encoding='utf-8') as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return []
+
     def _load(self):
         if self.backend == 'file':
-            # tolerate empty files
-            try:
-                if os.path.getsize(self.path) == 0:
-                    return []
-            except Exception:
-                pass
-            with open(self.path, 'r', encoding='utf-8') as f:
-                try:
-                    return json.load(f)
-                except json.JSONDecodeError:
-                    return []
+            # Return in-memory cache; fall back to disk if cache not set
+            if self._cache is not None:
+                return self._cache
+            return self._load_from_disk()
         else:
             raise NotImplementedError(f"Backend '{self.backend}' not implemented in this build")
 
@@ -88,6 +95,8 @@ class VectorStore:
         if self.backend == 'file':
             with open(self.path, 'w', encoding='utf-8') as f:
                 json.dump(objects, f, ensure_ascii=False, indent=2)
+            # Update cache
+            self._cache = objects
         else:
             raise NotImplementedError(f"Backend '{self.backend}' not implemented in this build")
 
@@ -113,17 +122,37 @@ class VectorStore:
     def search(self, embedding: list, top_k: int = 5):
         if self.backend == 'file':
             objs = self._load()
-            scores = []
-            for o in objs:
-                emb = o.get("embedding")
-                if not emb:
-                    continue
-                score = self._cosine(embedding, emb)
-                scores.append((score, o))
-            scores.sort(key=lambda x: x[0], reverse=True)
+            if not objs:
+                return []
+
+            # Vectorized cosine similarity for fast batch scoring
+            query_vec = np.array(embedding, dtype=float)
+            query_norm = np.linalg.norm(query_vec)
+
+            valid_objs = [o for o in objs if o.get("embedding")]
+            if not valid_objs:
+                return []
+
+            # Stack all embeddings into a matrix for bulk computation
+            matrix = np.array([o["embedding"] for o in valid_objs], dtype=float)
+            norms = np.linalg.norm(matrix, axis=1)
+
+            # Avoid division by zero
+            with np.errstate(divide='ignore', invalid='ignore'):
+                scores = np.where(
+                    (norms > 0) & (query_norm > 0),
+                    matrix.dot(query_vec) / (norms * query_norm),
+                    0.0
+                )
+
+            # Get top_k indices
+            top_indices = np.argpartition(scores, -min(top_k, len(scores)))[-min(top_k, len(scores)):]
+            top_indices = top_indices[np.argsort(scores[top_indices])[::-1]]
+
             results = []
-            for score, o in scores[:top_k]:
-                results.append({"id": o.get("id"), "score": score, "meta": o.get("meta")})
+            for idx in top_indices:
+                o = valid_objs[idx]
+                results.append({"id": o.get("id"), "score": float(scores[idx]), "meta": o.get("meta")})
             return results
         elif self.backend == 'chroma':
             self._init_chroma()
