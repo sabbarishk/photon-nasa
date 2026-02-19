@@ -3,8 +3,13 @@ from pydantic import BaseModel
 import os
 import nbformat
 from nbformat.v4 import new_notebook, new_code_cell
+from pathlib import Path
+from jinja2 import Template
+from uuid import uuid4
+import logging
 
 router = APIRouter()
+log = logging.getLogger(__name__)
 
 
 class WorkflowRequest(BaseModel):
@@ -15,28 +20,50 @@ class WorkflowRequest(BaseModel):
 
 
 @router.post("/generate")
-def generate(req: WorkflowRequest):
-    # Load template for format
-    fmt = req.dataset_format.lower().strip()
-    tpl_path = os.path.join(os.path.dirname(__file__), '..', 'templates', f"{fmt}.txt")
-    tpl_path = os.path.normpath(tpl_path)
-    if not os.path.exists(tpl_path):
-        # fallback to csv template
-        tpl_path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'templates', 'csv.txt'))
-
-    with open(tpl_path, 'r', encoding='utf-8') as f:
-        template = f.read()
-
-    # Fill in placeholders from request
-    code = (template
-            .replace("{{ dataset_url }}", req.dataset_url)
-            .replace("{{ variable }}", req.variable)
-            .replace("{{ title }}", req.title))
-
-    # Convert to a notebook
+async def generate_workflow(request: WorkflowRequest):
+    """Generate analysis workflow from template"""
     try:
-        nb = new_notebook(cells=[new_code_cell(code)])
-        nb_json = nbformat.writes(nb)
-        return {"notebook": nb_json}
+        template_path = Path(__file__).parent.parent / "templates" / f"{request.dataset_format.lower()}.txt"
+
+        if not template_path.exists():
+            raise HTTPException(status_code=400, detail=f"No template for format: {request.dataset_format}")
+
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_str = f.read()
+
+        template = Template(template_str)
+        code = template.render(
+            dataset_url=request.dataset_url,
+            variable=request.variable,
+            title=request.title
+        )
+
+        # ← ADD THIS: Strip BOM and other invisible characters
+        code = code.lstrip('\ufeff\ufbf0\ufbf1\ufbf2')  # Remove UTF-8/16/32 BOM
+        code = code.strip()  # Remove leading/trailing whitespace
+
+        notebook = {
+            "cells": [
+                {
+                    "cell_type": "code",
+                    "execution_count": None,
+                    "id": str(uuid4())[:8],
+                    "metadata": {},
+                    "outputs": [],
+                    "source": code.split('\n')  # nbformat expects list of lines
+                }
+            ],
+            "metadata": {},
+            "nbformat": 4,
+            "nbformat_minor": 5
+        }
+
+        return {
+            "notebook": notebook,
+            "preview": code[:500],
+            "format": request.dataset_format
+        }
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Notebook creation failed: {e}")
+        log.error(f"Workflow generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate workflow: {str(e)}")
