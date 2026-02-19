@@ -1,4 +1,4 @@
-﻿# {{ title }}
+# {{ title }}
 # Dataset: {{ dataset_url }}
 # Variable: {{ variable }}
 
