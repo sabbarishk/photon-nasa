@@ -1,4 +1,4 @@
-# Photon (MVP)
+.3+# Photon (MVP)
 
 This is a minimal MVP backend for Photon (file-based vector store and LLM integration via HuggingFace Inference API).
 

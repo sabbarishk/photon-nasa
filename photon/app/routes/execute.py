@@ -73,9 +73,17 @@ def execute_notebook(req: ExecuteRequest):
             stdout_capture = io.StringIO()
             stderr_capture = io.StringIO()
             
-            # Modify code to save plots instead of showing them
-            modified_code = req.code.replace("plt.show()", "")
-            modified_code += f"\n\n# Save all figures\nimport matplotlib.pyplot as plt\nimport os\nos.chdir(r'{tmpdir}')\nfig_num = 1\nfor fig in [plt.figure(n) for n in plt.get_fignums()]:\n    fig.savefig(f'output_fig_{{fig_num}}.png', dpi=150, bbox_inches='tight')\n    fig_num += 1\nplt.close('all')\n"
+            # Save figure RIGHT BEFORE plt.show() while it's still alive
+            save_code = f"""
+import matplotlib.pyplot as plt
+import os
+fig = plt.gcf()
+if fig and len(fig.get_axes()) > 0:
+    fig.savefig(r'{tmpdir}/output_fig_1.png', dpi=150, bbox_inches='tight')
+    print('[SAVED]')
+"""
+            # Inject save code before plt.show()
+            modified_code = req.code.replace("plt.show()", save_code + "\nplt.show()")
             
             # Create execution namespace WITH pre-imported modules
             exec_globals = {
@@ -120,23 +128,13 @@ def execute_notebook(req: ExecuteRequest):
             }
             
             # Collect generated images
-            for img_file in sorted(Path(tmpdir).glob("output_fig_*.png")):
+            for img_file in sorted(Path(tmpdir).glob("*.png")):
                 with open(img_file, 'rb') as f:
                     img_data = base64.b64encode(f.read()).decode('utf-8')
                     output["images"].append({
                         "filename": img_file.name,
                         "data": f"data:image/png;base64,{img_data}"
                     })
-            
-            # Also check for other saved PNG files
-            for img_file in Path(tmpdir).glob("*.png"):
-                if not img_file.name.startswith("output_fig_"):
-                    with open(img_file, 'rb') as f:
-                        img_data = base64.b64encode(f.read()).decode('utf-8')
-                        output["images"].append({
-                            "filename": img_file.name,
-                            "data": f"data:image/png;base64,{img_data}"
-                        })
             
             return output
             
