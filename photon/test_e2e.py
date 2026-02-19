@@ -3,10 +3,13 @@ import requests
 import json
 import time
 
-BASE = "http://localhost:8001"
+BASE = "http://localhost:8000"
+
+# Use a session for keep-alive (avoids ~2s per-connection TCP overhead)
+_session = requests.Session()
 
 def test_health():
-    r = requests.get(f"{BASE}/health", timeout=5)
+    r = _session.get(f"{BASE}/health", timeout=5)
     assert r.status_code == 200, f"Health check failed: {r.status_code}"
     print(f"✅ Health check OK")
 
@@ -20,7 +23,7 @@ def test_search():
     ]
     for q in queries:
         start = time.time()
-        r = requests.post(f"{BASE}/query/", json={"query": q, "top_k": 3}, timeout=30)
+        r = _session.post(f"{BASE}/query/", json={"query": q, "top_k": 3}, timeout=30)
         elapsed = time.time() - start
         assert r.status_code == 200, f"Search failed for '{q}': {r.status_code} {r.text[:200]}"
         data = r.json()
@@ -38,7 +41,7 @@ def test_workflow():
         "title": "GISS Global Temperature Analysis"
     }
     start = time.time()
-    r = requests.post(f"{BASE}/workflow/generate", json=payload, timeout=30)
+    r = _session.post(f"{BASE}/workflow/generate", json=payload, timeout=30)
     elapsed = time.time() - start
     assert r.status_code == 200, f"Workflow generation failed: {r.status_code} {r.text[:300]}"
     data = r.json()
@@ -83,7 +86,7 @@ else:
     print(f"Columns: {list(df.columns)[:10]}")
 """
     start = time.time()
-    r = requests.post(f"{BASE}/execute/notebook", json={"code": code, "timeout": 60}, timeout=90)
+    r = _session.post(f"{BASE}/execute/notebook", json={"code": code, "timeout": 60}, timeout=90)
     elapsed = time.time() - start
     assert r.status_code == 200, f"Execute failed: {r.status_code} {r.text[:300]}"
     data = r.json()

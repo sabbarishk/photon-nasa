@@ -1,6 +1,6 @@
 param(
     [switch]$SkipAuth,
-    [int]$Port = 8001,
+    [int]$Port = 8000,
     [bool]$Reload = $true
 )
 
@@ -22,7 +22,10 @@ Write-Host "Using port $Port"
 $python = Join-Path (Get-Location) ".venv\Scripts\python.exe"
 if (-not (Test-Path $python)) { $python = "python" }
 
-$reloadFlag = if ($Reload) { "--reload" } else { "" }
-
-Write-Host "Running: $python -m uvicorn app.main:app $reloadFlag --port $Port"
-& $python -m uvicorn app.main:app $reloadFlag --port $Port
+if ($Reload) {
+    Write-Host "Running: $python -m uvicorn app.main:app --host 0.0.0.0 --reload --port $Port"
+    & $python -m uvicorn app.main:app --host 0.0.0.0 --reload --port $Port
+} else {
+    Write-Host "Running: $python -m uvicorn app.main:app --host 0.0.0.0 --port $Port"
+    & $python -m uvicorn app.main:app --host 0.0.0.0 --port $Port
+}

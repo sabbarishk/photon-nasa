@@ -33,7 +33,7 @@ app.include_router(health.router, prefix="", tags=["health"])
 
 
 def _warmup_embedding_model():
-    """Pre-load the embedding model in a background thread so first search is instant."""
+    """Pre-load the embedding model so first search is instant."""
     try:
         logger.info("Pre-warming embedding model...")
         from app.services.hf_api import get_embedding
@@ -45,7 +45,8 @@ def _warmup_embedding_model():
 
 @app.on_event("startup")
 async def startup_event():
-    """Warm up embedding model on startup so first search has no delay."""
+    """Warm up embedding model on startup so first search has no delay.
+    Run in background thread to avoid blocking the event loop."""
     threading.Thread(target=_warmup_embedding_model, daemon=True).start()
 
 
