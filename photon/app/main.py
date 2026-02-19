@@ -4,11 +4,16 @@ from starlette.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 import time
 import logging
+import threading
+import os
 
 from app.routes import query, workflow, health, execute
 from app.services.auth import is_valid_key
-import os
 from app.services.redis_rate_limiter import RedisRateLimiter
+
+# Configure logging first so logger is ready everywhere
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
+logger = logging.getLogger('photon')
 
 app = FastAPI(title="Photon")
 
@@ -21,14 +26,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure basic logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
-logger = logging.getLogger('photon')
-
 app.include_router(query.router, prefix="/query", tags=["query"])
 app.include_router(workflow.router, prefix="/workflow", tags=["workflow"])
 app.include_router(execute.router, prefix="/execute", tags=["execute"])
 app.include_router(health.router, prefix="", tags=["health"])
+
+
+def _warmup_embedding_model():
+    """Pre-load the embedding model in a background thread so first search is instant."""
+    try:
+        logger.info("Pre-warming embedding model...")
+        from app.services.hf_api import get_embedding
+        get_embedding("warmup photon nasa")
+        logger.info("Embedding model ready.")
+    except Exception as e:
+        logger.warning("Embedding warmup failed (non-fatal): %s", e)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Warm up embedding model on startup so first search has no delay."""
+    threading.Thread(target=_warmup_embedding_model, daemon=True).start()
 
 
 class ApiKeyRateLimitMiddleware(BaseHTTPMiddleware):

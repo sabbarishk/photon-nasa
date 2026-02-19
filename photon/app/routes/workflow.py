@@ -4,8 +4,6 @@ import os
 import nbformat
 from nbformat.v4 import new_notebook, new_code_cell
 
-from app.services.hf_api import generate_code
-
 router = APIRouter()
 
 
@@ -19,7 +17,8 @@ class WorkflowRequest(BaseModel):
 @router.post("/generate")
 def generate(req: WorkflowRequest):
     # Load template for format
-    tpl_path = os.path.join(os.path.dirname(__file__), '..', 'templates', f"{req.dataset_format.lower()}.txt")
+    fmt = req.dataset_format.lower().strip()
+    tpl_path = os.path.join(os.path.dirname(__file__), '..', 'templates', f"{fmt}.txt")
     tpl_path = os.path.normpath(tpl_path)
     if not os.path.exists(tpl_path):
         # fallback to csv template
@@ -28,13 +27,11 @@ def generate(req: WorkflowRequest):
     with open(tpl_path, 'r', encoding='utf-8') as f:
         template = f.read()
 
-    prompt = template.replace("{{ dataset_url }}", req.dataset_url).replace("{{ variable }}", req.variable).replace("{{ title }}", req.title)
-
-    # Ask HF for extra polished code (optional); fallback to template code only
-    try:
-        code = generate_code(prompt)
-    except Exception:
-        code = prompt
+    # Fill in placeholders from request
+    code = (template
+            .replace("{{ dataset_url }}", req.dataset_url)
+            .replace("{{ variable }}", req.variable)
+            .replace("{{ title }}", req.title))
 
     # Convert to a notebook
     try:

@@ -1,235 +1,269 @@
 # {{ title }}
-# Advanced NASA Data Analysis and Visualization
+# NASA Dataset Analysis & Visualization
 # Dataset: {{ dataset_url }}
 # Variable: {{ variable }}
 
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
-# Set style for beautiful plots
 plt.style.use('seaborn-v0_8-darkgrid')
-sns.set_palette("husl")
-plt.rcParams['figure.figsize'] = (14, 8)
+plt.rcParams['figure.figsize'] = (14, 10)
 plt.rcParams['font.size'] = 11
 
-# Load and prepare data
+# ─────────────────────────────────────────────
+# STEP 1: Load Data
+# STEP 1: Load Data
+# ─────────────────────────────────────────────
 print("📊 Loading NASA dataset...")
 url = "{{ dataset_url }}"
 
-# Try different parsing strategies for NASA CSV formats
+df = None
+
+# Strategy 1 – standard CSV
 try:
-    # Try standard parsing first
     df = pd.read_csv(url)
-    print(f"✅ Loaded {len(df)} records")
-    
-    # Handle MultiIndex - GISS data stores values IN the MultiIndex
     if isinstance(df.index, pd.MultiIndex):
-        print("🔄 Detected MultiIndex format (GISS-style)")
-        
-        # Extract data from MultiIndex into a proper DataFrame
-        # First row of MultiIndex contains column names
         col_names = list(df.index[0])
-        
-        # Rest of the rows contain data
         data_rows = [list(idx) for idx in df.index[1:]]
-        
-        # Create new DataFrame with proper structure
         df = pd.DataFrame(data_rows, columns=col_names)
-        print(f"   Restructured to {df.shape[0]} rows × {df.shape[1]} columns")
-        print(f"   Columns: {list(df.columns)[:8]}")
-        
-except Exception as e:
-    print(f"⚠️  Error loading CSV: {e}")
-    # Try skipping rows or different separators
+    print(f"✅ Loaded {len(df)} rows, {len(df.columns)} columns (standard)")
+except Exception:
+    pass
+
+# Strategy 2 – skip comment/header rows
+if df is None or df.empty:
+    for skip in [1, 2, 3, 5, 7]:
+        try:
+            df = pd.read_csv(url, skiprows=skip)
+            if not df.empty:
+                print(f"✅ Loaded {len(df)} rows (skiprows={skip})")
+                break
+        except Exception:
+            pass
+
+# Strategy 3 – skip bad lines
+if df is None or df.empty:
     try:
-        df = pd.read_csv(url, skiprows=1)
-        print(f"✅ Loaded {len(df)} records (skipped header row)")
-    except:
-        df = pd.read_csv(url, sep='\s+')
-        print(f"✅ Loaded {len(df)} records (whitespace separator)")
+        df = pd.read_csv(url, on_bad_lines='skip', engine='python')
+        print(f"✅ Loaded {len(df)} rows (bad-lines skipped)")
+    except Exception:
+        pass
 
-print(f"\n📋 Dataset Info:")
-print(f"Shape: {df.shape}")
-print(f"Columns: {list(df.columns)[:5]}{'...' if len(df.columns) > 5 else ''}")
+# Strategy 4 – whitespace / tab separator
+if df is None or df.empty:
+    for sep in ['\t', r'\s+', '|', ';']:
+        try:
+            df = pd.read_csv(url, sep=sep, engine='python')
+            if not df.empty and len(df.columns) > 1:
+                print(f"✅ Loaded {len(df)} rows (sep={repr(sep)})")
+                break
+        except Exception:
+            pass
 
-# Smart column detection - find the main data column
+# Strategy 5 – skip rows + bad-lines together
+if df is None or df.empty:
+    for skip in range(1, 15):
+        try:
+            df = pd.read_csv(url, skiprows=skip, on_bad_lines='skip', engine='python')
+            if not df.empty and len(df.columns) > 1:
+                print(f"✅ Loaded {len(df)} rows (skiprows={skip} + bad-lines skipped)")
+                break
+        except Exception:
+            pass
+
+# Strategy 6 – read raw lines, find where data starts
+if df is None or df.empty:
+    try:
+        import urllib.request
+        from io import StringIO
+        with urllib.request.urlopen(url, timeout=30) as resp:
+            raw = resp.read().decode('utf-8', errors='replace')
+        lines = [l for l in raw.splitlines() if l.strip() and not l.strip().startswith(('#', '%', '!'))]
+        if lines:
+            df = pd.read_csv(StringIO('\n'.join(lines)), on_bad_lines='skip', engine='python')
+            print(f"✅ Loaded {len(df)} rows (raw line filtering)")
+    except Exception:
+        pass
+
+# Give up gracefully
+if df is None or df.empty:
+    print("""
+❌ Could not parse dataset.
+
+Possible reasons:
+  • URL points to a landing page rather than a raw data file
+  • File requires authentication or is not publicly accessible
+  • Format is NetCDF / HDF5 (choose the matching format in the generator)
+  • Network error
+
+Please verify the dataset URL is a direct link to a CSV/text file.
+""")
+    raise SystemExit(1)
+
+# ─────────────────────────────────────────────
+# STEP 2: Clean & Detect Columns
+# ─────────────────────────────────────────────
+df.columns = [str(c).strip() for c in df.columns]
+df.dropna(how='all', axis=1, inplace=True)
+
+print(f"\n📋 Dataset shape: {df.shape}")
+print(f"Columns: {list(df.columns)[:8]}{'...' if len(df.columns) > 8 else ''}")
+print(df.head(3).to_string())
+
+# Detect time / year column
+time_col = None
+for c in df.columns:
+    cl = c.lower()
+    if any(k in cl for k in ['year', 'date', 'time', 'month', 'day']):
+        time_col = c
+        break
+
+# Convert all non-time columns to numeric
+for c in df.columns:
+    df[c] = pd.to_numeric(df[c], errors='coerce')
+
+df.dropna(how='all', subset=[c for c in df.columns if c != time_col], inplace=True)
 numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-time_cols = [col for col in df.columns if any(x in str(col).lower() for x in ['year', 'date', 'time'])]
 
-# If no numeric columns, try converting
-if len(numeric_cols) == 0:
-    print("🔄 Attempting to convert columns to numeric...")
-    for col in df.columns:
-        if col not in time_cols:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-
-print(f"\n📊 Found {len(numeric_cols)} numeric columns: {numeric_cols[:3]}{'...' if len(numeric_cols) > 3 else ''}")
-
-# Select the main variable
-variable = "{{ variable }}"
+variable = "{{ variable }}".strip()
 if variable in df.columns:
     data_col = variable
 elif len(numeric_cols) > 0:
-    data_col = numeric_cols[0]
-    print(f"⚠️  Using '{data_col}' as main variable")
+    candidates = [c for c in numeric_cols if c != time_col]
+    data_col = candidates[0] if candidates else numeric_cols[0]
+    print(f"⚠️  Variable '{variable}' not found – using '{data_col}'")
 else:
-    print("❌ No numeric data found!")
-    raise ValueError("No numeric columns available for analysis")
+    print("❌ No numeric data found.")
+    raise SystemExit(1)
 
-# Prepare time series data
-if time_cols:
-    time_col = time_cols[0]
-    df[time_col] = pd.to_numeric(df[time_col], errors='coerce')
-    df = df.dropna(subset=[time_col, data_col])
-    years = df[time_col].values
-    data = df[data_col].values
-    print(f"\n✅ Prepared {len(data)} data points from {years.min():.0f} to {years.max():.0f}")
+# Build x/y arrays
+if time_col and time_col in df.columns:
+    clean = df[[time_col, data_col]].dropna()
+    x_vals = clean[time_col].values.astype(float)
+    y_vals = clean[data_col].values.astype(float)
+    x_label = time_col
 else:
-    data = df[data_col].dropna().values
-    years = np.arange(len(data))
-    print(f"\n✅ Prepared {len(data)} data points")
+    clean = df[[data_col]].dropna()
+    y_vals = clean[data_col].values.astype(float)
+    x_vals = np.arange(len(y_vals), dtype=float)
+    x_label = "Index"
 
-# Create comprehensive visualization dashboard
-fig = plt.figure(figsize=(16, 12))
-fig.suptitle('{{ title }} - Comprehensive Analysis', fontsize=18, fontweight='bold', y=0.995)
+print(f"\n✅ {len(y_vals)} data points for '{data_col}'")
+print(f"   Range: {y_vals.min():.4f} → {y_vals.max():.4f}  |  Mean: {y_vals.mean():.4f}  |  Std: {y_vals.std():.4f}")
 
-# 1. Time Series Plot
-ax1 = plt.subplot(3, 2, 1)
-ax1.plot(years, data, linewidth=2, color='#2E86AB', alpha=0.8, marker='o', markersize=3)
-ax1.set_title(f'{data_col} Over Time', fontsize=14, fontweight='bold')
-ax1.set_xlabel('Year' if time_cols else 'Index', fontsize=12)
-ax1.set_ylabel(data_col, fontsize=12)
-ax1.grid(True, alpha=0.3)
+# ─────────────────────────────────────────────
+# STEP 3: Visualise
+# ─────────────────────────────────────────────
+fig, axes = plt.subplots(2, 3, figsize=(18, 11))
+fig.suptitle("{{ title }}", fontsize=17, fontweight='bold', y=0.99)
 
-# Add trend line
-if len(data) > 1:
-    z = np.polyfit(years, data, 1)
+# Plot 1: Time series
+ax = axes[0, 0]
+ax.plot(x_vals, y_vals, lw=1.8, color='#2E86AB', alpha=0.85, marker='o', markersize=2.5)
+if len(y_vals) > 2:
+    z = np.polyfit(x_vals, y_vals, 1)
     p = np.poly1d(z)
-    ax1.plot(years, p(years), "--", color='#A23B72', linewidth=2, alpha=0.7, label=f'Trend: {z[0]:.4f}x + {z[1]:.2f}')
-    ax1.legend()
+    ax.plot(x_vals, p(x_vals), '--', color='#C73E1D', lw=2, label=f'Trend: {z[0]:+.4f}/unit')
+    ax.legend(fontsize=9)
+ax.set_title(f"{data_col} over {x_label}", fontweight='bold')
+ax.set_xlabel(x_label); ax.set_ylabel(data_col)
+ax.grid(True, alpha=0.3)
 
-# 2. Distribution Histogram with KDE
-ax2 = plt.subplot(3, 2, 2)
-ax2.hist(data, bins=30, alpha=0.6, color='#F18F01', edgecolor='black', density=True)
-if len(data) > 5:
-    from scipy import stats
-    kde_data = np.linspace(data.min(), data.max(), 200)
-    kde = stats.gaussian_kde(data)
-    ax2.plot(kde_data, kde(kde_data), color='#C73E1D', linewidth=2, label='KDE')
-    ax2.legend()
-ax2.set_title('Distribution', fontsize=14, fontweight='bold')
-ax2.set_xlabel(data_col, fontsize=12)
-ax2.set_ylabel('Density', fontsize=12)
-ax2.grid(True, alpha=0.3, axis='y')
+# Plot 2: Histogram
+ax = axes[0, 1]
+ax.hist(y_vals, bins=min(30, max(10, len(y_vals)//5)),
+        color='#F18F01', edgecolor='white', alpha=0.8)
+try:
+    from scipy.stats import gaussian_kde
+    kde_x = np.linspace(y_vals.min(), y_vals.max(), 300)
+    kde = gaussian_kde(y_vals)
+    ax2_twin = ax.twinx()
+    ax2_twin.plot(kde_x, kde(kde_x), color='#C73E1D', lw=2, label='KDE')
+    ax2_twin.set_ylabel('Density')
+    ax2_twin.legend(loc='upper right', fontsize=9)
+except Exception:
+    pass
+ax.set_title("Distribution", fontweight='bold')
+ax.set_xlabel(data_col); ax.set_ylabel("Count")
+ax.grid(True, alpha=0.3, axis='y')
 
-# 3. Box Plot
-ax3 = plt.subplot(3, 2, 3)
-bp = ax3.boxplot(data, vert=True, patch_artist=True, 
-                 boxprops=dict(facecolor='#84DCC6', alpha=0.7),
-                 medianprops=dict(color='#C73E1D', linewidth=2),
-                 whiskerprops=dict(color='#2E86AB', linewidth=1.5),
-                 capprops=dict(color='#2E86AB', linewidth=1.5))
-ax3.set_title('Box Plot Analysis', fontsize=14, fontweight='bold')
-ax3.set_ylabel(data_col, fontsize=12)
-ax3.grid(True, alpha=0.3, axis='y')
+# Plot 3: Box plot
+ax = axes[0, 2]
+ax.boxplot(y_vals, vert=True, patch_artist=True,
+           boxprops=dict(facecolor='#84DCC6', alpha=0.7),
+           medianprops=dict(color='#C73E1D', lw=2))
+stats_txt = (f"Mean:   {np.mean(y_vals):.3f}\n"
+             f"Median: {np.median(y_vals):.3f}\n"
+             f"Std:    {np.std(y_vals):.3f}\n"
+             f"Min:    {np.min(y_vals):.3f}\n"
+             f"Max:    {np.max(y_vals):.3f}")
+ax.text(1.35, np.median(y_vals), stats_txt, fontsize=9,
+        va='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.6))
+ax.set_title("Box Plot", fontweight='bold')
+ax.set_ylabel(data_col); ax.grid(True, alpha=0.3, axis='y')
 
-# Add statistics text
-stats_text = f"Mean: {np.mean(data):.3f}\nMedian: {np.median(data):.3f}\nStd: {np.std(data):.3f}"
-ax3.text(1.15, np.median(data), stats_text, fontsize=10, bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+# Plot 4: Rolling mean
+ax = axes[1, 0]
+ax.plot(x_vals, y_vals, 'o-', alpha=0.25, ms=2, color='gray', label='Raw')
+if len(y_vals) > 10:
+    win = max(5, len(y_vals) // 15)
+    roll = pd.Series(y_vals).rolling(win, center=True)
+    rm = roll.mean().values
+    rs = roll.std().values
+    ax.plot(x_vals, rm, lw=2, color='#2E86AB', label=f'{win}-pt avg')
+    ax.fill_between(x_vals, rm - rs, rm + rs, alpha=0.2, color='#F18F01', label='±1σ')
+ax.legend(fontsize=9)
+ax.set_title("Rolling Statistics", fontweight='bold')
+ax.set_xlabel(x_label); ax.set_ylabel(data_col); ax.grid(True, alpha=0.3)
 
-# 4. Rolling Statistics (if time series)
-ax4 = plt.subplot(3, 2, 4)
-if len(data) > 10:
-    window = max(5, len(data) // 20)
-    rolling_mean = pd.Series(data).rolling(window=window, center=True).mean()
-    rolling_std = pd.Series(data).rolling(window=window, center=True).std()
-    
-    ax4.plot(years, data, 'o-', alpha=0.3, markersize=2, label='Original', color='gray')
-    ax4.plot(years, rolling_mean, linewidth=2, label=f'{window}-point Moving Avg', color='#2E86AB')
-    ax4.fill_between(years, rolling_mean - rolling_std, rolling_mean + rolling_std, 
-                     alpha=0.2, color='#F18F01', label='±1 Std Dev')
-    ax4.legend()
-    ax4.set_title(f'Rolling Statistics (window={window})', fontsize=14, fontweight='bold')
+# Plot 5: Anomaly bars
+ax = axes[1, 1]
+mean_val = np.mean(y_vals)
+anomaly = y_vals - mean_val
+bar_colors = ['#C73E1D' if a > 0 else '#2E86AB' for a in anomaly]
+bar_width = max(0.6, (x_vals[-1] - x_vals[0]) / max(len(x_vals), 1) * 0.9) if len(x_vals) > 1 else 0.6
+ax.bar(x_vals, anomaly, color=bar_colors, alpha=0.7, width=bar_width)
+ax.axhline(0, color='black', lw=0.8)
+ax.set_title(f"Anomaly (baseline = {mean_val:.3f})", fontweight='bold')
+ax.set_xlabel(x_label); ax.set_ylabel(f"{data_col} anomaly"); ax.grid(True, alpha=0.3, axis='y')
+
+# Plot 6: Correlation heatmap OR period-change bars
+ax = axes[1, 2]
+num_candidates = [c for c in numeric_cols if c != time_col]
+if len(num_candidates) >= 2:
+    try:
+        import seaborn as sns
+        corr = df[num_candidates[:8]].corr()
+        sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm', center=0,
+                    square=True, ax=ax, cbar_kws={'shrink': 0.8}, annot_kws={'size': 8})
+        ax.set_title("Correlation Matrix", fontweight='bold')
+    except Exception:
+        ax.axis('off')
+        ax.text(0.5, 0.5, f"Dataset: {len(y_vals)} points\n{data_col}\nMean: {mean_val:.4f}",
+                ha='center', va='center', fontsize=12, transform=ax.transAxes)
+        ax.set_title("Summary", fontweight='bold')
+elif len(y_vals) > 2:
+    dy = np.diff(y_vals)
+    ax.bar(x_vals[1:], dy, color=['#84DCC6' if v >= 0 else '#C73E1D' for v in dy], alpha=0.7)
+    ax.axhline(0, color='black', lw=0.8)
+    ax.set_title(f"Period-over-Period Δ{data_col}", fontweight='bold')
+    ax.set_xlabel(x_label); ax.set_ylabel(f"Δ{data_col}"); ax.grid(True, alpha=0.3, axis='y')
 else:
-    ax4.plot(years, data, 'o-', linewidth=2, markersize=5, color='#2E86AB')
-    ax4.set_title('Data Points', fontsize=14, fontweight='bold')
-ax4.set_xlabel('Year' if time_cols else 'Index', fontsize=12)
-ax4.set_ylabel(data_col, fontsize=12)
-ax4.grid(True, alpha=0.3)
-
-# 5. Statistical Summary Table
-ax5 = plt.subplot(3, 2, 5)
-ax5.axis('tight')
-ax5.axis('off')
-
-stats_data = [
-    ['Metric', 'Value'],
-    ['Count', f'{len(data)}'],
-    ['Mean', f'{np.mean(data):.4f}'],
-    ['Median', f'{np.median(data):.4f}'],
-    ['Std Dev', f'{np.std(data):.4f}'],
-    ['Min', f'{np.min(data):.4f}'],
-    ['Max', f'{np.max(data):.4f}'],
-    ['Range', f'{np.max(data) - np.min(data):.4f}'],
-    ['Variance', f'{np.var(data):.4f}'],
-]
-
-table = ax5.table(cellText=stats_data, cellLoc='left', loc='center',
-                 colWidths=[0.4, 0.6])
-table.auto_set_font_size(False)
-table.set_fontsize(11)
-table.scale(1, 2)
-
-# Style header row
-for i in range(2):
-    table[(0, i)].set_facecolor('#2E86AB')
-    table[(0, i)].set_text_props(weight='bold', color='white')
-
-# Alternate row colors
-for i in range(1, len(stats_data)):
-    for j in range(2):
-        if i % 2 == 0:
-            table[(i, j)].set_facecolor('#E8F4F8')
-        table[(i, j)].set_edgecolor('#2E86AB')
-
-ax5.set_title('Statistical Summary', fontsize=14, fontweight='bold', pad=20)
-
-# 6. Year-over-Year Change (if time series with enough data)
-ax6 = plt.subplot(3, 2, 6)
-if len(data) > 2 and time_cols:
-    changes = np.diff(data)
-    change_years = years[1:]
-    colors = ['#84DCC6' if c >= 0 else '#C73E1D' for c in changes]
-    ax6.bar(change_years, changes, color=colors, alpha=0.7, edgecolor='black')
-    ax6.axhline(y=0, color='black', linestyle='-', linewidth=0.8)
-    ax6.set_title('Year-over-Year Change', fontsize=14, fontweight='bold')
-    ax6.set_xlabel('Year', fontsize=12)
-    ax6.set_ylabel(f'Change in {data_col}', fontsize=12)
-    ax6.grid(True, alpha=0.3, axis='y')
-else:
-    # Correlation with multiple variables if available
-    if len(numeric_cols) > 1:
-        corr_df = df[numeric_cols].corr()
-        sns.heatmap(corr_df, annot=True, fmt='.2f', cmap='coolwarm', center=0,
-                   square=True, ax=ax6, cbar_kws={'shrink': 0.8})
-        ax6.set_title('Correlation Matrix', fontsize=14, fontweight='bold')
-    else:
-        ax6.text(0.5, 0.5, f'Total Records: {len(data)}\nData Range: {years.min():.0f} - {years.max():.0f}',
-                ha='center', va='center', fontsize=14, transform=ax6.transAxes,
-                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-        ax6.axis('off')
-        ax6.set_title('Dataset Overview', fontsize=14, fontweight='bold')
+    ax.axis('off')
+    ax.set_title("Summary", fontweight='bold')
 
 plt.tight_layout()
 plt.show()
 
-print("\n✅ Comprehensive visualization dashboard complete!")
-print(f"📊 Analyzed {len(data)} data points")
-print(f"📈 Mean: {np.mean(data):.4f}, Std: {np.std(data):.4f}")
-print(f"📉 Range: [{np.min(data):.4f}, {np.max(data):.4f}]")
+print("\n✅ Analysis complete!")
+print(f"   Dataset  : {{ dataset_url }}")
+print(f"   Variable : {data_col}")
+print(f"   Points   : {len(y_vals)}")
+print(f"   Mean     : {np.mean(y_vals):.4f}")
+print(f"   Std      : {np.std(y_vals):.4f}")
+print(f"   Range    : [{np.min(y_vals):.4f}, {np.max(y_vals):.4f}]")
