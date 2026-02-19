@@ -73,9 +73,8 @@ def execute_notebook(req: ExecuteRequest):
             stdout_capture = io.StringIO()
             stderr_capture = io.StringIO()
             
-            # Save figure RIGHT BEFORE plt.show() while it's still alive
-            save_code = f"""
-import matplotlib.pyplot as plt
+            # Save figure RIGHT BEFORE plt.show() - inject savefig call
+            save_code = f"""import matplotlib.pyplot as plt
 import os
 fig = plt.gcf()
 if fig and len(fig.get_axes()) > 0:
@@ -83,8 +82,8 @@ if fig and len(fig.get_axes()) > 0:
     print('[SAVED]')
 plt.show()
 """
-            # Replace plt.show() with save code that includes show
-            modified_code = req.code.replace("plt.show()", save_code)
+            # Replace plt.show() with save code (which ends with plt.show())
+            modified_code = req.code.replace("plt.show()", save_code.rstrip())
             
             # Create execution namespace WITH pre-imported modules
             exec_globals = {
