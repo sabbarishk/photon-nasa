@@ -81,9 +81,10 @@ fig = plt.gcf()
 if fig and len(fig.get_axes()) > 0:
     fig.savefig(r'{tmpdir}/output_fig_1.png', dpi=150, bbox_inches='tight')
     print('[SAVED]')
+plt.show()
 """
-            # Inject save code before plt.show()
-            modified_code = req.code.replace("plt.show()", save_code + "\nplt.show()")
+            # Replace plt.show() with save code that includes show
+            modified_code = req.code.replace("plt.show()", save_code)
             
             # Create execution namespace WITH pre-imported modules
             exec_globals = {
