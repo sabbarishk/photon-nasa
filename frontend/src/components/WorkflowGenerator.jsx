@@ -70,7 +70,7 @@ function WorkflowGenerator() {
       // Extract code from cells
       const code = nb.cells
         .filter(cell => cell.cell_type === 'code')
-        .map(cell => Array.isArray(cell.source) ? cell.source.join('') : cell.source)
+        .map(cell => Array.isArray(cell.source) ? cell.source.join('\n') : cell.source)
         .join('\n\n')
       
       // Execute code
