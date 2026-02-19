@@ -1,5 +1,4 @@
-# {{ title }}
-# NASA Dataset Analysis & Visualization
+﻿# {{ title }}
 # Dataset: {{ dataset_url }}
 # Variable: {{ variable }}
 
@@ -8,306 +7,182 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import urllib.request
+import io
 import warnings
 warnings.filterwarnings('ignore')
 
+url = "{{ dataset_url }}"
+variable_name = "{{ variable }}"
+title = "{{ title }}"
+
 plt.style.use('seaborn-v0_8-darkgrid')
-plt.rcParams['figure.figsize'] = (14, 10)
+plt.rcParams['figure.figsize'] = (16, 5)
 plt.rcParams['font.size'] = 11
 
-# ============================================================
-# STEP 1: LOAD AND VALIDATE DATA
-# ============================================================
-print("📊 Loading NASA dataset...")
-
-import urllib.request
-import io
-
-def load_nasa_csv(url, variable_name):
-    """Smart NASA CSV loader with validation."""
-    
-    # Step 1: Fetch raw content and validate it's actually CSV
-    try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=30) as response:
-            content_type = response.headers.get('Content-Type', '')
-            raw_bytes = response.read()
-            raw_text = raw_bytes.decode('utf-8', errors='replace')
-    except Exception as e:
-        raise ValueError(f"❌ Cannot fetch URL: {url}\nError: {e}")
-    
-    # Step 2: Check if response is HTML (wrong URL)
-    stripped = raw_text.strip()
-    if stripped.startswith('<!') or stripped.startswith('<html') or stripped.startswith('<HTML'):
-        raise ValueError(
-            f"❌ URL returned an HTML page, not CSV data.\n"
-            f"URL: {url}\n"
-            f"This dataset may require authentication or the direct download URL is different.\n"
-            f"Try finding the direct .csv download link from the dataset page."
-        )
-    
-    # Step 3: Check for XML/JSON
-    if stripped.startswith('<?xml') or stripped.startswith('<feed') or stripped.startswith('{'):
-        raise ValueError(
-            f"❌ URL returned XML/JSON, not CSV data.\n"
-            f"URL: {url}\n"
-            f"Please use the direct CSV download URL."
-        )
-    
-    print(f"✅ Content looks like CSV data ({len(raw_text):,} bytes)")
-    
-    # Step 4: Detect header rows (NASA CSVs often have comment lines)
-    lines = raw_text.split('\n')
-    skiprows = 0
-    for i, line in enumerate(lines[:30]):
-        line = line.strip()
-        # Skip comment lines, empty lines, and metadata lines
-        if (line.startswith('#') or 
-            line.startswith('%') or 
-            line == '' or
-            (len(line) > 0 and not any(c.isdigit() or c == ',' or c == '\t' for c in line[:20]))):
-            skiprows = i + 1
-        else:
-            break
-    
-    if skiprows > 0:
-        print(f"ℹ️  Skipping {skiprows} header/comment rows")
-    
-    # Step 5: Try multiple CSV parsing strategies
-    strategies = [
-        {"sep": ",",  "skiprows": skiprows,     "on_bad_lines": "skip"},
-        {"sep": "\t", "skiprows": skiprows,     "on_bad_lines": "skip"},
-        {"sep": ",",  "skiprows": skiprows + 1, "on_bad_lines": "skip"},
-        {"sep": None, "skiprows": skiprows,     "on_bad_lines": "skip", "engine": "python"},
-        {"sep": ",",  "skiprows": 0,            "on_bad_lines": "skip"},
-    ]
-    
-    df = None
-    for i, params in enumerate(strategies):
-        try:
-            test_df = pd.read_csv(io.StringIO(raw_text), **params)
-            # Validate: must have >1 row, >1 col, and not HTML
-            if len(test_df) > 1 and len(test_df.columns) > 0:
-                col_names = [str(c) for c in test_df.columns]
-                if not any('DOCTYPE' in c or '<html' in c.lower() for c in col_names):
-                    df = test_df
-                    print(f"✅ Strategy {i+1} succeeded: {df.shape[0]} rows × {df.shape[1]} cols")
-                    break
-        except Exception:
-            continue
-    
-    if df is None:
-        raise ValueError(
-            f"❌ Could not parse CSV data from URL.\n"
-            f"First 200 chars of content:\n{raw_text[:200]}"
-        )
-    
-    # Step 6: Clean column names
-    df.columns = [str(c).strip().replace('\r', '') for c in df.columns]
-    
-    # Step 7: Handle GISS-style MultiIndex (column names are in first data row)
-    first_row = df.iloc[0].astype(str).tolist()
-    if all(v.replace('.','').replace('-','').replace('*','').isalpha() for v in first_row[:5] if v not in ['nan','']):
-        print("ℹ️  Detected header row in data — extracting column names...")
-        df.columns = first_row
-        df = df.iloc[1:].reset_index(drop=True)
-        print(f"✅ Columns extracted: {list(df.columns[:8])}...")
-    
-    # Step 8: Convert numeric columns
-    for col in df.columns:
-        df[col] = pd.to_numeric(df[col].astype(str).str.strip().str.replace('***', 'nan'), errors='ignore')
-    
-    # Step 9: Find the variable column
-    target_col = None
-    # Exact match first
-    if variable_name in df.columns:
-        target_col = variable_name
-    else:
-        # Case-insensitive partial match
-        var_lower = variable_name.lower()
-        for col in df.columns:
-            if var_lower in str(col).lower() or str(col).lower() in var_lower:
-                target_col = col
-                break
-    
-    if target_col is None:
-        # Use first numeric column
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        if numeric_cols:
-            target_col = numeric_cols[0]
-            print(f"⚠️  Variable '{variable_name}' not found. Using '{target_col}' instead.")
-            print(f"    Available columns: {list(df.columns[:10])}")
-        else:
-            raise ValueError(
-                f"❌ No numeric columns found.\n"
-                f"Available columns: {list(df.columns)}\n"
-                f"Please specify one of these as your variable name."
-            )
-    else:
-        print(f"✅ Using column: '{target_col}'")
-    
-    return df, target_col
-
-# Load the data
+# ── STEP 1: FETCH ──────────────────────────────────────────────────────────────
+print(f"Loading: {url}")
 try:
-    df, target_col = load_nasa_csv(url, variable_name)
-except ValueError as e:
-    print(str(e))
-    raise
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        raw_bytes = resp.read()
+except Exception as e:
+    print(f"Cannot fetch URL: {e}"); raise SystemExit(1)
 
-print(f"\n📋 Dataset shape: {df.shape}")
-print(f"📌 Target variable: {target_col}")
-print(f"📊 Sample values: {df[target_col].dropna().head(5).tolist()}")
+try:    raw_text = raw_bytes.decode("utf-8")
+except: raw_text = raw_bytes.decode("latin-1")
 
-# Detect time / year column
-time_col = None
-for c in df.columns:
-    cl = c.lower()
-    if any(k in cl for k in ['year', 'date', 'time', 'month', 'day']):
-        time_col = c
-        break
+stripped = raw_text.strip()
 
-# Convert all non-time columns to numeric
-for c in df.columns:
-    df[c] = pd.to_numeric(df[c], errors='coerce')
-
-df.dropna(how='all', subset=[c for c in df.columns if c != time_col], inplace=True)
-numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-
-variable = "{{ variable }}".strip()
-if variable in df.columns:
-    data_col = variable
-elif len(numeric_cols) > 0:
-    candidates = [c for c in numeric_cols if c != time_col]
-    data_col = candidates[0] if candidates else numeric_cols[0]
-    print(f"⚠️  Variable '{variable}' not found – using '{data_col}'")
-else:
-    print("❌ No numeric data found.")
+# Reject HTML responses (landing pages, login walls)
+if stripped[:200].lower().lstrip().startswith(("<!doctype", "<html", "<!--")):
+    print("ERROR: URL returned an HTML page, not data.")
+    print(f"URL: {url}")
+    print("Please use a direct .csv download URL, not a dataset landing page.")
     raise SystemExit(1)
 
-# Build x/y arrays
-if time_col and time_col in df.columns:
-    clean = df[[time_col, data_col]].dropna()
-    x_vals = clean[time_col].values.astype(float)
-    y_vals = clean[data_col].values.astype(float)
-    x_label = time_col
+# Handle JSON
+if stripped.startswith("{") or stripped.startswith("["):
+    import json as _j
+    try:
+        obj = _j.loads(stripped)
+        rows = obj if isinstance(obj, list) else obj.get("data", obj.get("results", [obj]))
+        _jdf = pd.DataFrame(rows)
+        raw_text = _jdf.to_csv(index=False)
+        print(f"JSON converted to CSV: {_jdf.shape}")
+    except Exception as e:
+        print(f"JSON parse failed: {e}"); raise SystemExit(1)
+
+print(f"Fetched {len(raw_text):,} bytes")
+
+# ── STEP 2: PARSE CSV ─────────────────────────────────────────────────────────
+# Auto-detect leading comment rows
+lines = raw_text.split("\n")
+skiprows = 0
+for i, line in enumerate(lines[:40]):
+    ls = line.strip()
+    if not ls or ls.startswith(("#", "%", "!", "/")):
+        skiprows = i + 1
+    else:
+        break
+if skiprows: print(f"Skipping {skiprows} comment rows")
+
+strategies = [
+    dict(sep=",",  skiprows=skiprows,     on_bad_lines="skip"),
+    dict(sep="\t", skiprows=skiprows,     on_bad_lines="skip"),
+    dict(sep=",",  skiprows=skiprows + 1, on_bad_lines="skip"),
+    dict(sep=None, skiprows=skiprows,     on_bad_lines="skip", engine="python"),
+    dict(sep=",",  skiprows=0,            on_bad_lines="skip"),
+]
+df = None
+for i, params in enumerate(strategies):
+    try:
+        t = pd.read_csv(io.StringIO(raw_text), **params)
+        cols = [str(c) for c in t.columns]
+        if len(t) > 1 and not any("doctype" in c.lower() or "<html" in c.lower() for c in cols):
+            df = t
+            print(f"Parsed with strategy {i+1}: {df.shape[0]} rows x {df.shape[1]} cols")
+            break
+    except Exception:
+        continue
+
+if df is None:
+    print(f"All CSV strategies failed. Sample:\n{raw_text[:300]}"); raise SystemExit(1)
+
+# Clean column names
+df.columns = [str(c).strip().replace("\r","").replace("\ufeff","") for c in df.columns]
+
+# GISS-style: detect when first data row actually contains headers
+if len(df) > 1:
+    first = df.iloc[0].astype(str).tolist()
+    if all(v.replace(".","").replace("-","").replace("*","").isalpha()
+           for v in first[:min(5, len(first))] if v not in ("nan","","None")):
+        df.columns = [v.strip() for v in first]
+        df = df.iloc[1:].reset_index(drop=True)
+        print(f"GISS headers extracted: {list(df.columns[:8])}")
+
+# Convert to numeric
+for col in df.columns:
+    df[col] = pd.to_numeric(df[col].astype(str).str.strip().str.replace("***","",regex=False), errors="ignore")
+
+print(f"Shape: {df.shape} | Columns: {list(df.columns[:10])}")
+
+#  STEP 3: FIND VARIABLE COLUMN 
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+target_col = None
+
+if variable_name in df.columns:
+    target_col = variable_name
 else:
-    clean = df[[data_col]].dropna()
-    y_vals = clean[data_col].values.astype(float)
-    x_vals = np.arange(len(y_vals), dtype=float)
-    x_label = "Index"
+    vl = variable_name.lower()
+    for col in df.columns:
+        if vl in str(col).lower() or str(col).lower() in vl:
+            target_col = col; break
 
-print(f"\n✅ {len(y_vals)} data points for '{data_col}'")
-print(f"   Range: {y_vals.min():.4f} → {y_vals.max():.4f}  |  Mean: {y_vals.mean():.4f}  |  Std: {y_vals.std():.4f}")
+if target_col is None and numeric_cols:
+    target_col = numeric_cols[0]
+    print(f"Variable '{variable_name}' not found - using first numeric: '{target_col}'")
+    print(f"Available columns: {list(df.columns)}")
 
-# ─────────────────────────────────────────────
-# STEP 3: Visualise
-# ─────────────────────────────────────────────
-fig, axes = plt.subplots(2, 3, figsize=(18, 11))
-fig.suptitle("{{ title }}", fontsize=17, fontweight='bold', y=0.99)
+if target_col is None:
+    print(f"No numeric columns. Columns: {list(df.columns)}"); raise SystemExit(1)
 
-# Plot 1: Time series
-ax = axes[0, 0]
-ax.plot(x_vals, y_vals, lw=1.8, color='#2E86AB', alpha=0.85, marker='o', markersize=2.5)
-if len(y_vals) > 2:
-    z = np.polyfit(x_vals, y_vals, 1)
-    p = np.poly1d(z)
-    ax.plot(x_vals, p(x_vals), '--', color='#C73E1D', lw=2, label=f'Trend: {z[0]:+.4f}/unit')
-    ax.legend(fontsize=9)
-ax.set_title(f"{data_col} over {x_label}", fontweight='bold')
-ax.set_xlabel(x_label); ax.set_ylabel(data_col)
-ax.grid(True, alpha=0.3)
+print(f"Target column: {target_col}")
+
+#  STEP 4: FIND TIME / X AXIS 
+time_col = None
+for tc in ["year","date","time","month","day","timestamp","yr"]:
+    for col in df.columns:
+        if tc in str(col).lower(): time_col = col; break
+    if time_col: break
+if time_col is None:
+    for col in numeric_cols:
+        if col != target_col: time_col = col; break
+if time_col is None:
+    df["_index"] = range(len(df)); time_col = "_index"
+
+plot_df = df[[time_col, target_col]].copy()
+plot_df[time_col]   = pd.to_numeric(plot_df[time_col],   errors="coerce")
+plot_df[target_col] = pd.to_numeric(plot_df[target_col], errors="coerce")
+plot_df = plot_df.dropna()
+
+if len(plot_df) == 0:
+    print("No valid numeric rows after cleaning."); raise SystemExit(1)
+
+x = plot_df[time_col].values
+y = plot_df[target_col].values
+print(f"Points: {len(y)} | min={y.min():.4f} max={y.max():.4f} mean={y.mean():.4f}")
+
+#  STEP 5: VISUALIZE 
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+fig.suptitle(title, fontsize=14, fontweight="bold", y=1.02)
+
+# Plot 1: Time series + trend line
+axes[0].plot(x, y, color="#2E86AB", linewidth=1.5, alpha=0.85)
+if len(x) >= 3:
+    try:
+        z = np.polyfit(x, y, 1); p = np.poly1d(z)
+        axes[0].plot(x, p(x), "r--", linewidth=1.5, label=f"trend: {z[0]:+.4f}/unit")
+        axes[0].legend(fontsize=8)
+    except Exception: pass
+axes[0].set_title(f"{target_col} over {time_col}")
+axes[0].set_xlabel(time_col); axes[0].set_ylabel(target_col)
 
 # Plot 2: Histogram
-ax = axes[0, 1]
-ax.hist(y_vals, bins=min(30, max(10, len(y_vals)//5)),
-        color='#F18F01', edgecolor='white', alpha=0.8)
-try:
-    from scipy.stats import gaussian_kde
-    kde_x = np.linspace(y_vals.min(), y_vals.max(), 300)
-    kde = gaussian_kde(y_vals)
-    ax2_twin = ax.twinx()
-    ax2_twin.plot(kde_x, kde(kde_x), color='#C73E1D', lw=2, label='KDE')
-    ax2_twin.set_ylabel('Density')
-    ax2_twin.legend(loc='upper right', fontsize=9)
-except Exception:
-    pass
-ax.set_title("Distribution", fontweight='bold')
-ax.set_xlabel(data_col); ax.set_ylabel("Count")
-ax.grid(True, alpha=0.3, axis='y')
+axes[1].hist(y, bins=min(30, max(10, len(y)//10)), color="#A23B72", alpha=0.75, edgecolor="white")
+axes[1].axvline(np.mean(y), color="red", linestyle="--", linewidth=1.5, label=f"mean={np.mean(y):.3f}")
+axes[1].set_title(f"Distribution of {target_col}")
+axes[1].set_xlabel(target_col); axes[1].set_ylabel("Count"); axes[1].legend(fontsize=8)
 
-# Plot 3: Box plot
-ax = axes[0, 2]
-ax.boxplot(y_vals, vert=True, patch_artist=True,
-           boxprops=dict(facecolor='#84DCC6', alpha=0.7),
-           medianprops=dict(color='#C73E1D', lw=2))
-stats_txt = (f"Mean:   {np.mean(y_vals):.3f}\n"
-             f"Median: {np.median(y_vals):.3f}\n"
-             f"Std:    {np.std(y_vals):.3f}\n"
-             f"Min:    {np.min(y_vals):.3f}\n"
-             f"Max:    {np.max(y_vals):.3f}")
-ax.text(1.35, np.median(y_vals), stats_txt, fontsize=9,
-        va='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.6))
-ax.set_title("Box Plot", fontweight='bold')
-ax.set_ylabel(data_col); ax.grid(True, alpha=0.3, axis='y')
-
-# Plot 4: Rolling mean
-ax = axes[1, 0]
-ax.plot(x_vals, y_vals, 'o-', alpha=0.25, ms=2, color='gray', label='Raw')
-if len(y_vals) > 10:
-    win = max(5, len(y_vals) // 15)
-    roll = pd.Series(y_vals).rolling(win, center=True)
-    rm = roll.mean().values
-    rs = roll.std().values
-    ax.plot(x_vals, rm, lw=2, color='#2E86AB', label=f'{win}-pt avg')
-    ax.fill_between(x_vals, rm - rs, rm + rs, alpha=0.2, color='#F18F01', label='±1σ')
-ax.legend(fontsize=9)
-ax.set_title("Rolling Statistics", fontweight='bold')
-ax.set_xlabel(x_label); ax.set_ylabel(data_col); ax.grid(True, alpha=0.3)
-
-# Plot 5: Anomaly bars
-ax = axes[1, 1]
-mean_val = np.mean(y_vals)
-anomaly = y_vals - mean_val
-bar_colors = ['#C73E1D' if a > 0 else '#2E86AB' for a in anomaly]
-bar_width = max(0.6, (x_vals[-1] - x_vals[0]) / max(len(x_vals), 1) * 0.9) if len(x_vals) > 1 else 0.6
-ax.bar(x_vals, anomaly, color=bar_colors, alpha=0.7, width=bar_width)
-ax.axhline(0, color='black', lw=0.8)
-ax.set_title(f"Anomaly (baseline = {mean_val:.3f})", fontweight='bold')
-ax.set_xlabel(x_label); ax.set_ylabel(f"{data_col} anomaly"); ax.grid(True, alpha=0.3, axis='y')
-
-# Plot 6: Correlation heatmap OR period-change bars
-ax = axes[1, 2]
-num_candidates = [c for c in numeric_cols if c != time_col]
-if len(num_candidates) >= 2:
-    try:
-        import seaborn as sns
-        corr = df[num_candidates[:8]].corr()
-        sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm', center=0,
-                    square=True, ax=ax, cbar_kws={'shrink': 0.8}, annot_kws={'size': 8})
-        ax.set_title("Correlation Matrix", fontweight='bold')
-    except Exception:
-        ax.axis('off')
-        ax.text(0.5, 0.5, f"Dataset: {len(y_vals)} points\n{data_col}\nMean: {mean_val:.4f}",
-                ha='center', va='center', fontsize=12, transform=ax.transAxes)
-        ax.set_title("Summary", fontweight='bold')
-elif len(y_vals) > 2:
-    dy = np.diff(y_vals)
-    ax.bar(x_vals[1:], dy, color=['#84DCC6' if v >= 0 else '#C73E1D' for v in dy], alpha=0.7)
-    ax.axhline(0, color='black', lw=0.8)
-    ax.set_title(f"Period-over-Period Δ{data_col}", fontweight='bold')
-    ax.set_xlabel(x_label); ax.set_ylabel(f"Δ{data_col}"); ax.grid(True, alpha=0.3, axis='y')
-else:
-    ax.axis('off')
-    ax.set_title("Summary", fontweight='bold')
+# Plot 3: Rolling mean
+window = max(3, len(y)//15)
+roll = pd.Series(y).rolling(window=window, center=True).mean()
+axes[2].plot(x, y, color="#2E86AB", linewidth=0.8, alpha=0.35, label="raw")
+axes[2].plot(x, roll, color="#F18F01", linewidth=2, label=f"{window}-pt mean")
+axes[2].set_title(f"Smoothed {target_col}")
+axes[2].set_xlabel(time_col); axes[2].set_ylabel(target_col); axes[2].legend(fontsize=8)
 
 plt.tight_layout()
 plt.show()
-
-print("\n✅ Analysis complete!")
-print(f"   Dataset  : {{ dataset_url }}")
-print(f"   Variable : {data_col}")
-print(f"   Points   : {len(y_vals)}")
-print(f"   Mean     : {np.mean(y_vals):.4f}")
-print(f"   Std      : {np.std(y_vals):.4f}")
-print(f"   Range    : [{np.min(y_vals):.4f}, {np.max(y_vals):.4f}]")
+print("Plot generated")
+print(f"Points: {len(y)} | Mean: {np.mean(y):.4f} | Range: [{y.min():.4f}, {y.max():.4f}]")
