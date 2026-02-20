@@ -10,335 +10,532 @@
 
 ---
 
-## **TABLE OF CONTENTS**
+## **DOCUMENTATION INDEX**
 
-1. [Executive Summary](#1-executive-summary)
-2. [Problem Statement](#2-problem-statement)
-3. [Solution Overview](#3-solution-overview)
-4. [Architecture](#4-architecture)
-5. [Technical Stack](#5-technical-stack)
-6. [Core Components](#6-core-components)
-7. [Data Flow](#7-data-flow)
-8. [API Documentation](#8-api-documentation)
-9. [Installation & Setup](#9-installation--setup)
-10. [Usage Guide](#10-usage-guide)
-11. [Performance & Optimization](#11-performance--optimization)
-12. [Security & Authentication](#12-security--authentication)
-13. [Deployment](#13-deployment)
-14. [Known Limitations & Roadmap](#14-known-limitations--roadmap)
-15. [Contributing](#15-contributing)
-16. [License & Acknowledgments](#16-license--acknowledgments)
+This is the main documentation hub for the Photon-NASA project. Detailed technical guides are organized into separate documents for easier navigation:
+
+### **Core Documentation**
+- **[Technical Architecture Guide](docs/01_TECHNICAL_ARCHITECTURE.md)** - System design, components, data flow, and performance
+- **[API Reference](docs/02_API_REFERENCE.md)** - Complete endpoint documentation, request/response formats, authentication
+- **[Deployment Guide](docs/03_DEPLOYMENT_GUIDE.md)** - Installation, setup, Docker, AWS, production configuration
+
+### **Quick Links**
+- [Installation](#quick-start-installation)
+- [Usage Examples](#usage-examples)
+- [Supported Datasets](#supported-datasets)
+- [Known Limitations](#known-limitations)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
 
 ---
 
 ## **1. EXECUTIVE SUMMARY**
 
-### **Overview**
+### **What is Photon?**
 
-Photon is a full-stack web application that democratizes access to NASA's Earth science datasets by combining semantic search with automated workflow generation. The system allows researchers to find relevant datasets using natural language queries and instantly generate ready-to-run Jupyter notebooks with dataset-specific analysis code.
+Photon is a full-stack web application that **eliminates 95% of the setup time** for NASA Earth science data analysis by combining:
+
+1. **Semantic Search** - Natural language queries to find datasets (no keywords needed)
+2. **Automated Workflow Generation** - Instant Jupyter notebooks with analysis code
+
+**Traditional Workflow:** 80-150 minutes to set up analysis  
+**Photon Workflow:** 30 seconds from search to ready-to-run code
 
 ### **Key Features**
 
-- **Semantic Search Engine**: Natural language queries powered by local sentence-transformers model
-- **Automated Workflow Generation**: Format-specific Jupyter notebook templates (CSV, NetCDF, HDF5, JSON)
-- **NASA CMR Integration**: Direct access to NASA's Common Metadata Repository
-- **High Performance**: Sub-100ms search queries via cached local embeddings
-- **Production-Ready Architecture**: API authentication, rate limiting, CORS support, comprehensive error handling
+✅ **Semantic Search Engine** - Understands "ice sheet data" means glacier, cryosphere, polar datasets  
+✅ **34 Verified NASA Datasets** - Direct download URLs with metadata  
+✅ **Automated Jupyter Notebooks** - Format-specific templates (CSV, NetCDF, HDF5, JSON)  
+✅ **Sub-100ms Search** - Local ML model, no external API dependencies  
+✅ **3-Panel Visualizations** - Time series, histograms, rolling averages  
+✅ **Production Ready** - API auth, rate limiting, CORS, error handling  
 
-### **Technology Highlights**
+### **Technology Stack**
 
-- **Backend**: FastAPI (Python 3.10+) with async support
-- **Frontend**: React 18 + Vite + Tailwind CSS
-- **ML/AI**: Local sentence-transformers (all-MiniLM-L6-v2) for embeddings
-- **Vector Store**: File-based (MVP) with ChromaDB backend support (production)
-- **Notebook Generation**: Jinja2 templates + nbformat
-
-### **Repository Composition**
-
-```
-Python:           52.4%  (Backend, ML, services)
-JavaScript:       30.3%  (Frontend, React components)
-Jupyter Notebook: 11.8%  (Templates, examples)
-PowerShell:       2.1%   (Automation scripts)
-HTML/CSS:         3.2%   (Frontend styling)
-```
+- **Backend:** Python 3.10+, FastAPI, sentence-transformers (local ML model)
+- **Frontend:** React 18, Vite, Tailwind CSS
+- **Vector Store:** File-based (JSON) for MVP, ChromaDB support for production
+- **Performance:** Sub-100ms searches, 28-55ms with in-memory cache
 
 ---
 
 ## **2. PROBLEM STATEMENT**
 
-### **Current Challenges in NASA Data Analysis**
+### **Current NASA Data Analysis Challenges**
 
-NASA scientists and researchers face significant friction when working with Earth science datasets:
+#### **Discovery Problem**
+- **Keyword-only search** - Must know exact terminology (MOD10A1, NDVI, albedo)
+- **Fragmented sources** - NSIDC, GISS, MODIS, each with different interfaces
+- **No semantic understanding** - "temperature" ≠ "thermal" in keyword systems
 
-#### **Discovery Challenges**
+#### **Workflow Setup Problem**
+- **Format complexity** - CSV, NetCDF, HDF5 each need different Python libraries
+- **Boilerplate code** - 30-60 minutes writing data loading and visualization
+- **Documentation overhead** - Reading API docs before starting analysis
+- **Environment setup** - Installing dependencies, managing versions
 
-**Keyword-only search**: NASA's Earthdata Search uses exact keyword matching, missing semantically similar datasets. Users must know precise terminology (e.g., "MOD10A1", "NDVI", "albedo") to find relevant data.
+#### **Time Impact**
 
-**Fragmented sources**: Data is spread across multiple repositories (NSIDC, GISS, MODIS, etc.), requiring familiarity with multiple systems and interfaces.
-
-#### **Workflow Setup Challenges**
-
-**Format complexity**: Different formats (CSV, NetCDF, HDF5, GeoTIFF) require different Python libraries (pandas, xarray, h5py, rasterio), each with unique APIs and conventions.
-
-**Boilerplate code**: Researchers spend 30-60 minutes writing repetitive data loading and visualization code for each new dataset.
-
-**Documentation overhead**: Reading format-specific documentation and API references before starting analysis adds significant time.
-
-**Environment setup**: Installing correct libraries and managing dependencies creates additional friction.
-
-#### **Time Impact Analysis**
-
-**Traditional workflow:**
 ```
-1. Search for dataset (keyword trial-and-error)     15-30 minutes
-2. Find and read documentation                      20-40 minutes  
-3. Set up Python environment                        10-20 minutes
-4. Write data loading boilerplate                   20-30 minutes
-5. Write visualization code                         15-30 minutes
-───────────────────────────────────────────────────────────────
-TOTAL TIME TO START ANALYSIS:                       80-150 minutes
-```
+Traditional Workflow Timeline:
+├─ Search for dataset           15-30 min
+├─ Read documentation           20-40 min  
+├─ Set up environment           10-20 min
+├─ Write loading code           20-30 min
+└─ Write visualization code     15-30 min
+   ───────────────────────────────────────
+   TOTAL: 80-150 minutes
 
-This represents significant time lost before researchers can begin actual scientific analysis.
+Photon Workflow Timeline:
+├─ Natural language search      5-10 sec
+├─ Select dataset               5 sec
+├─ Generate notebook            2-5 sec
+└─ Download and open            10 sec
+   ───────────────────────────────────────
+   TOTAL: 30 seconds (95% reduction)
+```
 
 ---
 
 ## **3. SOLUTION OVERVIEW**
 
-### **Photon's Approach**
+### **How Photon Works**
 
-Photon eliminates workflow setup friction through two integrated capabilities:
-
-#### **3.1 Semantic Search**
-
-**Technical Implementation:**
-
-Photon converts text queries into 384-dimensional vectors using a pre-trained sentence-transformers model. These embeddings capture semantic meaning, not just keyword presence. The system then computes cosine similarity between the query vector and stored dataset vectors to rank results by relevance.
-
-**Comparison with Keyword Search:**
-
-| Feature | NASA Earthdata (Keyword) | Photon (Semantic) |
-|---------|--------------------------|-------------------|
-| Query: "ice sheet data" | Only datasets with exact words | Includes "glacier", "cryosphere", "polar ice" |
-| Query: "temperature measurements" | Datasets with "temperature" keyword | Also finds "thermal", "heat flux", datasets with "T" variable |
-| Technical terminology required | Yes (must know "NDVI", "albedo") | No (understands "vegetation health", "surface reflectivity") |
-| Search time | Variable | Less than 100ms (cached embeddings) |
-
-**Technology Foundation:**
-
-The system uses a local `all-MiniLM-L6-v2` model cached in memory, eliminating external API dependencies and achieving consistent sub-100ms query times. This local-first approach provides 20-50x performance improvement over API-based solutions.
-
-#### **3.2 Automated Workflow Generation**
-
-**Value Proposition:**
-
-Instead of manually writing analysis code, users receive a complete, format-specific Jupyter notebook in seconds. The system automatically:
-
-- Selects correct Python libraries based on data format
-- Generates data loading code with proper parameters
-- Includes exploratory data analysis (head, describe, info)
-- Provides visualization templates (matplotlib, seaborn)
-- Implements best practices (missing value checks, data validation)
-- Applies format-specific optimizations (chunking for large datasets)
-
-**Generated Notebook Components:**
-
-```python
-1. Imports - Format-specific libraries (pandas, xarray, h5py)
-2. Data Loading - Correct file readers with parameters
-3. Exploratory Analysis - Summary statistics, data structure inspection
-4. Visualization - Publication-ready plots with proper formatting
-5. Analysis Template - Variable-specific computations
-6. Best Practices - Error handling, data validation
+#### **Step 1: Semantic Search**
+```
+User types: "GISS temperature trends"
+         ↓
+System converts to 384-dimensional vector using local ML model
+         ↓
+Compares with 34 stored dataset vectors using cosine similarity
+         ↓
+Returns ranked results in <100ms
 ```
 
-**Time Savings Comparison:**
+**Example Results:**
+- GISS Global Temperature (score: 0.92)
+- GISS Hemispheric Temperature (score: 0.89)
+- GISS Zonal Temperature (score: 0.87)
 
+#### **Step 2: Automated Workflow Generation**
 ```
-Photon workflow:
-1. Natural language search                          5-10 seconds
-2. Select dataset from results                      5 seconds
-3. Generate notebook                                2-5 seconds
-4. Download and open in Jupyter                     10 seconds
-───────────────────────────────────────────────────────────────
-TOTAL TIME TO START ANALYSIS:                       30 seconds
+User clicks "Generate Workflow" → System auto-fills:
+├─ Dataset URL: https://data.giss.nasa.gov/.../GLB.Ts+dSST.csv
+├─ Format: CSV
+├─ Variable: J-D (annual mean)
+└─ Title: GISS Global Temperature Analysis
 
-Result: 95%+ time reduction for exploratory data analysis setup
+User clicks "Generate Notebook" → Receives:
+├─ Data loading code (pandas with 5 parsing strategies)
+├─ Exploratory analysis (head, describe, info)
+├─ 3-panel visualization (time series, histogram, rolling mean)
+└─ Ready to run in Jupyter
 ```
 
-#### **3.3 Key Differentiators**
+### **Key Differentiators**
 
-**Semantic Understanding**: Unlike keyword-based systems, Photon understands that "temperature data" and "thermal measurements" are semantically equivalent, even without shared terms.
-
-**Workflow Automation**: The combination of search with instant workflow generation is unique. Current NASA tools provide either discovery (Earthdata Search) or visualization (Panoply, Giovanni), but not automated code generation.
-
-**Format Intelligence**: The system automatically adapts code generation to dataset format, eliminating the need to remember which library to use for which format.
-
-**Performance**: Local ML model execution provides enterprise-grade performance without external dependencies or rate limits.
+| Feature | Traditional Tools | Photon |
+|---------|------------------|---------|
+| Search | Keyword matching | Semantic understanding |
+| Code Generation | Manual (30-60 min) | Automatic (5 sec) |
+| Format Support | Must learn per format | Auto-detects and adapts |
+| Performance | Variable | Sub-100ms guaranteed |
+| Dependencies | External APIs | Local ML model |
 
 ---
 
-## **4. ARCHITECTURE**
+## **4. QUICK START (INSTALLATION)**
 
-### **4.1 System Architecture Diagram**
+### **Prerequisites**
+- Python 3.10+
+- Node.js 18+
+- Git
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│                          USER                                  │
-│               (Browser: Chrome, Firefox, Safari)               │
-└──────────────────────────┬─────────────────────────────────────┘
-                           │
-                           │ HTTPS/HTTP
-                           ▼
-┌────────────────────────────────────────────────────────────────┐
-│                   FRONTEND (React SPA)                         │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │  Components:                                             │ │
-│  │  - Hero.jsx           Landing page                       │ │
-│  │  - Search.jsx         Dataset search UI                  │ │
-│  │  - WorkflowGenerator  Notebook generator                 │ │
-│  │  - Navbar.jsx         Navigation                         │ │
-│  │  - Footer.jsx         Footer                             │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-│  Services Layer:                                               │
-│  - api.js: Axios HTTP client                                   │
-│  - Context API: Shared state management                        │
-│                                                                │
-│  Port: 5173 (development) | Build: Static files               │
-└──────────────────────────┬─────────────────────────────────────┘
-                           │
-                           │ REST API (JSON)
-                           │ POST /query/
-                           │ POST /workflow/generate
-                           │ POST /execute/notebook
-                           │ GET /health
-                           ▼
-┌────────────────────────────────────────────────────────────────┐
-│                    BACKEND (FastAPI)                           │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │  Routes:                                                 │ │
-│  │  - /query          Semantic search endpoint             │ │
-│  │  - /workflow       Notebook generation                  │ │
-│  │  - /execute        Code execution                       │ │
-│  │  - /health         Health check                         │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-│  Middleware:                                                   │
-│  - CORS: Cross-origin requests                                 │
-│  - Auth: API key validation (optional)                         │
-│  - Rate Limiter: Redis-based throttling                        │
-│  - Logging: Request/response logging                           │
-│                                                                │
-│  Port: 8000                                                    │
-└──────────┬────────────────────────┬────────────────────────────┘
-           │                        │
-           ▼                        ▼
-┌────────────────────┐    ┌────────────────────────┐
-│   EMBEDDING        │    │   WORKFLOW             │
-│   SYSTEM           │    │   GENERATOR            │
-│                    │    │                        │
-│ - Local Model      │    │ - Jinja2 Templates     │
-│   (all-MiniLM)     │    │   csv.txt              │
-│ - Thread-safe      │    │   netcdf.txt           │
-│   caching          │    │   hdf5.txt             │
-│ - 384-dim vectors  │    │   json.txt             │
-│ - Sub-100ms        │    │ - nbformat builder     │
-│                    │    │ - Variable subst.      │
-└──────────┬─────────┘    └────────────────────────┘
-           │
-           ▼
-┌────────────────────────────────────────────────────────────────┐
-│                   VECTOR STORE                                 │
-│                                                                │
-│  Backend Options:                                              │
-│  ┌─────────────────────┐    ┌────────────────────────────┐   │
-│  │  FILE (Default)     │    │  CHROMA (Production)       │   │
-│  │  - vectors.json     │    │  - ChromaDB client         │   │
-│  │  - Under 10k        │    │  - Millions of vectors     │   │
-│  │  - In-memory cache  │    │  - DuckDB + Parquet        │   │
-│  │  - NumPy cosine     │    │  - Sub-100ms queries       │   │
-│  └─────────────────────┘    └────────────────────────────┘   │
-└────────────────────────────────────────────────────────────────┘
-           │
-           ▼
-┌────────────────────────────────────────────────────────────────┐
-│              NASA CMR INTEGRATION                              │
-│                                                                │
-│  - NASA Common Metadata Repository API                         │
-│  - Endpoint: cmr.earthdata.nasa.gov/search/collections.json    │
-│  - Ingestion: scripts/ingest_sample.py                         │
-│  - Bulk ingestion: scripts/bulk_ingest.py                      │
-└────────────────────────────────────────────────────────────────┘
+### **Backend Setup**
+
+```powershell
+# Clone repository
+git clone https://github.com/sabbarishk/photon-nasa.git
+cd photon-nasa/photon
+
+# Create virtual environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Ingest 34 verified datasets
+python -m scripts.bulk_ingest --clear
+
+# Start backend (no authentication)
+.\scripts\run_server.ps1 -SkipAuth
 ```
 
-### **4.2 Technology Layers**
+### **Frontend Setup**
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    PRESENTATION LAYER                       │
-│  React 18, Vite, Tailwind CSS, Axios, React Router         │
-└─────────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    APPLICATION LAYER                        │
-│  FastAPI, Uvicorn, Pydantic, Jinja2, nbformat              │
-└─────────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    BUSINESS LOGIC LAYER                     │
-│  Embedding Service, Vector Store, Workflow Generator        │
-│  NASA API Client, Auth Service, Rate Limiter               │
-└─────────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│                      DATA LAYER                             │
-│  File System (vectors.json), ChromaDB, Redis, NASA CMR     │
-└─────────────────────────────────────────────────────────────┘
+```powershell
+# Navigate to frontend
+cd ../frontend
+
+# Install dependencies
+npm install
+
+# Create environment file
+echo "VITE_API_URL=http://localhost:8000" > .env
+
+# Start development server
+npm run dev
 ```
 
-### **4.3 Deployment Architecture**
+### **Verify Installation**
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                       PRODUCTION                             │
-│                                                              │
-│  ┌────────────────┐         ┌──────────────────────────┐   │
-│  │   CDN          │         │   Load Balancer          │   │
-│  │  (CloudFront)  │         │   (AWS ALB/ELB)          │   │
-│  │  Static Files  │         └──────────┬───────────────┘   │
-│  └────────────────┘                    │                    │
-│                                        │                    │
-│                          ┌─────────────┴────────────┐       │
-│                          │                          │       │
-│                    ┌─────▼──────┐          ┌───────▼────┐  │
-│                    │  Backend   │          │  Backend   │  │
-│                    │  Instance  │          │  Instance  │  │
-│                    │  (Docker)  │          │  (Docker)  │  │
-│                    └─────┬──────┘          └───────┬────┘  │
-│                          │                          │       │
-│                          └─────────┬────────────────┘       │
-│                                    │                        │
-│                          ┌─────────▼────────────┐           │
-│                          │  ChromaDB / Redis    │           │
-│                          │  (Managed Services)  │           │
-│                          └──────────────────────┘           │
-└──────────────────────────────────────────────────────────────┘
+```powershell
+# Test backend health
+curl http://localhost:8000/health
+
+# Open browser
+start http://localhost:5173
 ```
 
 ---
 
-*[Sections 5-16 continue with the same content from your provided documentation...]*
+## **5. USAGE EXAMPLES**
+
+### **Example 1: Search for Temperature Data**
+
+**Natural Language Query:** `"global temperature trends"`
+
+**Results:**
+```json
+{
+  "results": [
+    {
+      "id": "giss-global-temp",
+      "score": 0.92,
+      "meta": {
+        "title": "GISS Global Temperature Analysis",
+        "dataset_url": "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv",
+        "format": "CSV",
+        "variable": "J-D"
+      }
+    }
+  ]
+}
+```
+
+**Generated Notebook Includes:**
+- CSV loading with 5 fallback strategies
+- GISS MultiIndex header handling
+- Time series plot with trend line
+- Histogram with mean marker
+- 12-month rolling average
+
+### **Example 2: Search for Sea Ice Data**
+
+**Natural Language Query:** `"Arctic ice extent"`
+
+**Results:** 2 datasets (Arctic + Antarctic sea ice monthly extent)
+
+**Generated Visualization:**
+- Extent trends over 40+ years
+- Seasonal patterns
+- Linear regression trend line
+
+### **Example 3: Search for CO2 Data**
+
+**Natural Language Query:** `"carbon dioxide Mauna Loa"`
+
+**Results:** Keeling Curve dataset
+
+**Generated Analysis:**
+- Monthly CO2 concentrations
+- Year-over-year growth rate
+- Seasonal cycle visualization
 
 ---
 
-**END OF DOCUMENTATION**
+## **6. SUPPORTED DATASETS**
+
+Photon currently supports **34 verified NASA datasets** with direct download URLs:
+
+### **Climate Data (8 datasets)**
+- GISS Global Temperature (4 variants: Global, Hemispheric, Zonal, Station)
+- NOAA CO2 Mauna Loa (monthly)
+- NOAA CH4 Global (monthly)
+- NOAA N2O Global (monthly)
+- NOAA SF6 Global (monthly)
+
+### **Cryosphere Data (4 datasets)**
+- Arctic Sea Ice Extent (NSIDC, monthly)
+- Antarctic Sea Ice Extent (NSIDC, monthly)
+- GRACE Greenland Ice Mass (monthly)
+- GRACE Antarctica Ice Mass (monthly)
+
+### **Ocean Data (2 datasets)**
+- Global Mean Sea Level (CSIRO)
+- Sea Surface Temperature Anomaly
+
+### **Astronomy Data (3 datasets)**
+- NASA Exoplanet Archive (confirmed planets)
+- Near-Earth Objects (orbital elements)
+- Meteorite Landings (global)
+
+### **Other Datasets (17 datasets)**
+- Wildfire perimeters, ocean chemistry, atmospheric composition, etc.
+
+**Search Keywords:**
+```
+"GISS temperature" | "global warming" | "climate change"
+"Arctic ice" | "sea ice extent" | "polar"
+"CO2" | "carbon dioxide" | "greenhouse gas"
+"exoplanet" | "near earth object" | "meteorite"
+"sea level" | "ocean" | "wildfire"
+```
 
 ---
 
-*This documentation is maintained as part of the Photon-NASA project. For the latest version and updates, visit the [GitHub repository](https://github.com/sabbarishk/photon-nasa).*
+## **7. ARCHITECTURE OVERVIEW**
 
-*Project developed under the guidance of John Dankanich, Chief Technologist at NASA, as part of exploring improvements to science data analysis tools.*
+```
+┌─────────────────┐
+│   React SPA     │  Port 5173 - Search UI + Notebook Generator
+└────────┬────────┘
+         │ REST API
+         ▼
+┌─────────────────┐
+│   FastAPI       │  Port 8000 - Backend with semantic search
+└────────┬────────┘
+         │
+    ┌────┴────┐
+    ▼         ▼
+┌─────────┐ ┌──────────────┐
+│ Vector  │ │ Local ML     │
+│ Store   │ │ Model        │
+│ (JSON)  │ │ (all-MiniLM) │
+└─────────┘ └──────────────┘
+```
+
+**Key Components:**
+- **Frontend:** React components (Hero, Search, WorkflowGenerator)
+- **Backend:** FastAPI routes (/query, /workflow/generate, /execute)
+- **Embedding System:** Local sentence-transformers model (cached)
+- **Vector Store:** File-based JSON (34 entries with 384-dim embeddings)
+- **Templates:** Jinja2 templates for CSV, NetCDF, HDF5, JSON
+
+**For detailed architecture:** See [Technical Architecture Guide](docs/01_TECHNICAL_ARCHITECTURE.md)
+
+---
+
+## **8. API QUICK REFERENCE**
+
+### **Search Datasets**
+```http
+POST http://localhost:8000/query/
+Content-Type: application/json
+
+{
+  "query": "MODIS temperature",
+  "top_k": 5
+}
+```
+
+### **Generate Workflow**
+```http
+POST http://localhost:8000/workflow/generate
+Content-Type: application/json
+
+{
+  "dataset_url": "https://data.giss.nasa.gov/.../GLB.Ts+dSST.csv",
+  "dataset_format": "csv",
+  "variable": "J-D",
+  "title": "Temperature Analysis"
+}
+```
+
+### **Health Check**
+```http
+GET http://localhost:8000/health
+```
+
+**For complete API documentation:** See [API Reference](docs/02_API_REFERENCE.md)
+
+---
+
+## **9. KNOWN LIMITATIONS**
+
+### **Current Limitations**
+
+1. **Variable Selection Challenge**
+   - Users must manually type variable/column names
+   - No dataset preview endpoint (planned Q1 2026)
+   - Workaround: Variable pre-populated from metadata when available
+
+2. **Format Support**
+   - Only CSV works end-to-end (NetCDF/HDF5 templates exist but untested)
+   - GeoTIFF, Parquet, Zarr templates not yet created
+
+3. **Vector Store Scalability**
+   - File-based JSON doesn't scale beyond ~10k vectors
+   - ChromaDB backend available but not default
+
+4. **Execution Engine Security**
+   - Code execution not sandboxed (runs arbitrary Python)
+   - Production deployment requires Docker isolation
+
+5. **Dataset Count**
+   - 34 verified datasets (not full NASA catalog)
+   - NASA CMR has 10,000+ datasets
+
+---
+
+## **10. ROADMAP**
+
+### **Q1 2026 (January - March)**
+- ✅ MVP Launch (Complete)
+- 🔄 Dataset preview endpoint (solve variable selection)
+- 🔄 Enhanced error messages
+- 🔄 Tutorial videos
+
+### **Q2 2026 (April - June)**
+- ChromaDB migration as default
+- Docker-based execution sandboxing
+- GeoTIFF and Parquet templates
+- Performance optimization (target <50ms)
+
+### **Q3 2026 (July - September)**
+- Workflow library and sharing
+- GitHub integration
+- Custom template builder
+- Public v1.0 release
+
+### **Q4 2026 (October - December)**
+- Analytics dashboard
+- Workflow automation (scheduled runs)
+- JupyterHub integration
+- Multi-language support (R, Julia)
+
+---
+
+## **11. PERFORMANCE METRICS**
+
+| Operation | Current | Target (Production) |
+|-----------|---------|---------------------|
+| Embedding generation | <100ms | <50ms |
+| Vector search (34 datasets) | 28-55ms | <25ms |
+| Workflow generation | 2-5s | <1s |
+| Total search time | 150-250ms | <100ms |
+
+**Optimization Strategies:**
+- Local ML model (no API latency)
+- In-memory vector cache
+- Vectorized NumPy operations
+- Pre-warming on startup
+
+---
+
+## **12. DEPLOYMENT**
+
+### **Docker Deployment**
+
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
+```
+
+### **AWS Deployment**
+
+```bash
+# Backend: Elastic Beanstalk
+eb init -p python-3.10 photon-backend
+eb create photon-backend-prod
+eb deploy
+
+# Frontend: S3 + CloudFront
+npm run build
+aws s3 sync dist/ s3://photon-frontend/ --delete
+```
+
+**For complete deployment guide:** See [Deployment Guide](docs/03_DEPLOYMENT_GUIDE.md)
+
+---
+
+## **13. CONTRIBUTING**
+
+We welcome contributions! Priority areas:
+
+- Additional notebook templates (GeoTIFF, Zarr, GRIB)
+- Dataset format auto-detection
+- Testing with diverse NASA datasets
+- Performance benchmarking
+- Security auditing
+
+**How to contribute:**
+1. Fork repository
+2. Create feature branch: `git checkout -b feature/your-feature`
+3. Make changes and test
+4. Commit: `git commit -m "feat: add GeoTIFF template"`
+5. Push and open Pull Request
+
+---
+
+## **14. LICENSE & ACKNOWLEDGMENTS**
+
+### **License**
+MIT License - Copyright (c) 2026 Sabbarish Khanna Subramanian
+
+### **Acknowledgments**
+
+**NASA Data Sources:**
+- NASA Common Metadata Repository (CMR)
+- GISS Surface Temperature Analysis
+- NSIDC MODIS datasets
+
+**Open Source Projects:**
+- FastAPI, React, sentence-transformers, Hugging Face
+
+**Special Thanks:**
+- **NASA L'SPACE NPWEE Program** for inspiration
+- **John Dankanich, Chief Technologist** for mentorship
+- **Open Source Community** for exceptional tools
+
+---
+
+## **15. CONTACT & SUPPORT**
+
+**Author:** Sabbarish Khanna Subramanian  
+**GitHub:** [@sabbarishk](https://github.com/sabbarishk)  
+**Repository:** [photon-nasa](https://github.com/sabbarishk/photon-nasa)  
+
+**Support Channels:**
+- GitHub Issues for bug reports
+- GitHub Discussions for questions
+- Email for collaboration inquiries
+
+---
+
+## **16. CITATION**
+
+If you use Photon in your research:
+
+```bibtex
+@software{photon_nasa_2026,
+  author = {Subramanian, Sabbarish Khanna},
+  title = {Photon: Natural Language Query Layer for NASA Open Data},
+  year = {2026},
+  publisher = {GitHub},
+  url = {https://github.com/sabbarishk/photon-nasa},
+  note = {Advised by John Dankanich, NASA Chief Technologist}
+}
+```
+
+---
+
+**For detailed technical documentation, see:**
+- [Technical Architecture Guide](docs/01_TECHNICAL_ARCHITECTURE.md)
+- [API Reference](docs/02_API_REFERENCE.md)
+- [Deployment Guide](docs/03_DEPLOYMENT_GUIDE.md)
+
+---
 
 *Last Updated: January 2026*
