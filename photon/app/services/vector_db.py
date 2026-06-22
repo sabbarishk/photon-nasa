@@ -18,11 +18,14 @@ def _get_collection():
     global _client, _collection
     if _collection is not None:
         return _collection
-    persist_dir = os.path.normpath(
-        os.environ.get("CHROMA_PERSIST_DIR", _CHROMA_DEFAULT)
-    )
-    os.makedirs(persist_dir, exist_ok=True)
-    _client = chromadb.PersistentClient(path=persist_dir)
+    persist_dir = os.environ.get("CHROMA_PERSIST_DIR", _CHROMA_DEFAULT)
+    if persist_dir == ":memory:":
+        # In-memory client: no disk I/O, used by tests.
+        _client = chromadb.EphemeralClient()
+    else:
+        persist_dir = os.path.normpath(persist_dir)
+        os.makedirs(persist_dir, exist_ok=True)
+        _client = chromadb.PersistentClient(path=persist_dir)
     _collection = _client.get_or_create_collection(
         name=_COLLECTION_NAME,
         metadata={"hnsw:space": "cosine"},
@@ -92,8 +95,18 @@ def count() -> int:
 
 
 def _reset(persist_dir: str = None) -> None:
-    """Reset singleton state. For use in tests only."""
+    """Reset singleton state. For use in tests only.
+
+    Deletes the collection before clearing the client reference so that
+    EphemeralClient (which is a process-level singleton in ChromaDB 1.x)
+    starts clean for the next test rather than retaining old data.
+    """
     global _client, _collection
+    if _client is not None:
+        try:
+            _client.delete_collection(_COLLECTION_NAME)
+        except Exception:
+            pass
     _client = None
     _collection = None
     if persist_dir is not None:
