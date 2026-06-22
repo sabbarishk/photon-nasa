@@ -1,0 +1,7 @@
+# Testing
+pytest
+httpx
+pytest-asyncio
+
+# Linting
+ruff
