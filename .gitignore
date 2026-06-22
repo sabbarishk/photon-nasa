@@ -38,6 +38,9 @@ Thumbs.db
 .env
 .env.local
 
+# Node
+node_modules/
+
 # Secrets — never commit these
 photon/data/api_keys.json
 
