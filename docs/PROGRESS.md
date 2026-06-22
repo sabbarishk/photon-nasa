@@ -6,6 +6,68 @@ not here.
 
 ---
 
+## 2026-06-21 — Session 4: Phase 1 repo cleanup (4 items)
+
+**Did:**
+
+**Item 1 — node_modules removed from git history**
+- `git rm --cached -r frontend/node_modules/` untracked 2,432 files.
+- Added `node_modules/` to `.gitignore`.
+- `git filter-repo --path frontend/node_modules --invert-paths` rewrote
+  all history to remove the blobs from the one commit that added them.
+- Repo pack size: **11.48 MiB → 1.03 MiB** (11× reduction). Zero history
+  references to node_modules remain.
+- Force-pushed the rewritten history.
+
+**Item 2 — Duplicate frontend deleted**
+- Compared `frontend/` (root) vs `photon/frontend/`:
+  - `frontend/`: Vite 5, React 18, JSX, real components (Navbar, Hero,
+    Search, WorkflowGenerator, Footer), DatasetContext, api.js service
+    wired to all 4 backend endpoints. The real application.
+  - `photon/frontend/`: create-react-app scaffold (officially deprecated
+    by Meta in 2023), untouched default boilerplate ("Edit src/App.js
+    and save to reload"), `cra-template` listed as a runtime dependency.
+    Never developed.
+- Deleted `photon/frontend/` entirely (17 tracked files + local
+  node_modules on disk).
+- Removed stale `timeout` parameter from `executeNotebook()` in
+  `frontend/src/services/api.js` and its callsite in
+  `WorkflowGenerator.jsx` — the backend no longer accepts it (server
+  enforces 15s constant via Docker, per ADR-005).
+
+**Item 3 — Empty stub files deleted**
+- Confirmed `photon/app/services/llm.py`, `embedding.py`, `vector_db.py`
+  were exactly 0 bytes. Nothing imports them. Deleted via `git rm`.
+- `photon/requirements.txt` had 3,056 bytes of content — not empty,
+  handled in Item 4.
+
+**Item 4 — requirements.txt rebuilt from scratch**
+- Old file was UTF-16 LE (every char followed by a null byte) and was a
+  full `pip freeze` of the entire virtualenv — including torch,
+  weaviate-client, Cartopy, grpcio, scikit-learn, sympy, etc. that are
+  never imported by any server file.
+- Audited every `import` in `photon/app/` and `photon/scripts/`. Rebuilt
+  `requirements.txt` as UTF-8, Unix line endings, listing only:
+  `fastapi`, `uvicorn[standard]`, `starlette`, `pydantic`, `Jinja2`,
+  `nbformat`, `requests`, `sentence-transformers`, `numpy`, `redis`,
+  `chromadb` (last two optional — app falls back gracefully if absent).
+- Created `photon/requirements-dev.txt`: `pytest`, `httpx`,
+  `pytest-asyncio`, `ruff`.
+
+**Status:** All four Phase 1 cleanup items complete. Repo is now in a
+clean state: single frontend, no empty stubs, no committed dependency
+trees, correct requirements encoding.
+
+**Next session options (pick one):**
+- Phase 2: Improve test coverage — the existing 2 tests cover none of
+  the high-risk endpoints. Write integration tests for `/execute`,
+  `/query`, and `/workflow`.
+- Phase 2: Resolve ADR-002 (architecture scope) and begin the RAG
+  pipeline upgrade — replace static Jinja2 templates with actual
+  LLM-grounded code generation.
+
+---
+
 ## 2026-06-21 — Session 3: Phase 0 security fix — Docker sandbox replaces exec() RCE
 
 **Did:**
