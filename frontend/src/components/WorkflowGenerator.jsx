@@ -74,7 +74,7 @@ function WorkflowGenerator() {
         .join('\n\n')
       
       // Execute code
-      const result = await executeNotebook(code, 120)  // 2 minute timeout
+      const result = await executeNotebook(code)
       setExecutionResult(result)
       
       if (result.exit_code !== 0 && result.stderr) {

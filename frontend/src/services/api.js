@@ -47,12 +47,9 @@ export const checkHealth = async () => {
   }
 }
 
-export const executeNotebook = async (code, timeout = 60) => {
+export const executeNotebook = async (code) => {
   try {
-    const response = await api.post('/execute/notebook', {
-      code,
-      timeout
-    })
+    const response = await api.post('/execute/notebook', { code })
     return response.data
   } catch (error) {
     console.error('Notebook execution error:', error)
