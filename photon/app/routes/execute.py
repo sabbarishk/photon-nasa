@@ -1,142 +1,123 @@
+import base64
+import os
+import subprocess
+import tempfile
+import uuid
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import tempfile
-import os
-import base64
-import sys
-import io
-from pathlib import Path
-from contextlib import redirect_stdout, redirect_stderr
 
 router = APIRouter()
+
+SANDBOX_IMAGE = "photon-sandbox"
+TIMEOUT_SECONDS = 15
+MEMORY_LIMIT = "256m"
+CPU_LIMIT = "0.5"
+
+# Force non-interactive matplotlib backend before any user code runs.
+_PREAMBLE = (
+    "import matplotlib\n"
+    "matplotlib.use('Agg')\n"
+)
+
+# Replaces plt.show() so figures are written to disk and returned to the caller.
+_SAVEFIG_SNIPPET = (
+    "\nimport matplotlib.pyplot as _plt\n"
+    "_fig = _plt.gcf()\n"
+    "if _fig is not None and len(_fig.get_axes()) > 0:\n"
+    "    _fig.savefig('/workspace/output_fig_1.png', dpi=150, bbox_inches='tight')\n"
+)
 
 
 class ExecuteRequest(BaseModel):
     code: str
-    timeout: int = 60  # seconds
 
 
-@router.get("/test-imports")
-def test_imports():
-    """Test what packages are available in this process"""
-    results = {}
-    test_packages = ['pandas', 'numpy', 'matplotlib', 'seaborn', 'xarray']
-    
-    for pkg in test_packages:
-        try:
-            module = __import__(pkg)
-            results[pkg] = {
-                'available': True,
-                'version': getattr(module, '__version__', 'unknown'),
-                'path': getattr(module, '__file__', 'unknown')
-            }
-        except ImportError as e:
-            results[pkg] = {
-                'available': False,
-                'error': str(e)
-            }
-    
-    results['sys.path'] = sys.path
-    results['python_executable'] = sys.executable
-    return results
+def _docker_available() -> bool:
+    try:
+        r = subprocess.run(
+            ["docker", "info"],
+            capture_output=True,
+            timeout=5,
+        )
+        return r.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def _prepare_code(user_code: str) -> str:
+    return _PREAMBLE + user_code.replace("plt.show()", _SAVEFIG_SNIPPET)
 
 
 @router.post("/notebook")
 def execute_notebook(req: ExecuteRequest):
-    """
-    Execute Python code from notebook and return outputs including images.
-    Returns stdout, stderr, and base64-encoded images.
-    Uses exec() to run code in the same process with all packages available.
-    """
-    try:
-        # Pre-import all common packages to make them available in exec namespace
-        import pandas as pd
-        import numpy as np
-        import matplotlib.pyplot as plt
-        import matplotlib
-        matplotlib.use('Agg')  # Non-interactive backend
-        
-        # Try to import optional packages
+    if not _docker_available():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Code execution unavailable: Docker is not running on this host. "
+                "Start Docker Desktop (or the Docker daemon) and retry."
+            ),
+        )
+
+    container_name = f"photon-exec-{uuid.uuid4().hex[:12]}"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        code_path = os.path.join(tmpdir, "code.py")
+        with open(code_path, "w", encoding="utf-8") as f:
+            f.write(_prepare_code(req.code))
+
+        cmd = [
+            "docker", "run",
+            "--rm",
+            "--name", container_name,
+            "--network", "none",
+            "--memory", MEMORY_LIMIT,
+            "--cpus", CPU_LIMIT,
+            "--volume", f"{tmpdir}:/workspace",
+            SANDBOX_IMAGE,
+            "python", "/workspace/code.py",
+        ]
+
+        stdout = ""
+        stderr = ""
+        exit_code = 1
+        timed_out = False
+
         try:
-            import seaborn as sns
-        except ImportError:
-            sns = None
-            
-        try:
-            import xarray as xr
-        except ImportError:
-            xr = None
-        
-        # Create temporary directory for saving figures
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Capture stdout and stderr
-            stdout_capture = io.StringIO()
-            stderr_capture = io.StringIO()
-            
-            # Save figure RIGHT BEFORE plt.show() - inject savefig call
-            save_code = f"""import matplotlib.pyplot as plt
-import os
-fig = plt.gcf()
-if fig and len(fig.get_axes()) > 0:
-    fig.savefig(r'{tmpdir}/output_fig_1.png', dpi=150, bbox_inches='tight')
-    print('[SAVED]')
-plt.show()
-"""
-            # Replace plt.show() with save code (which ends with plt.show())
-            modified_code = req.code.replace("plt.show()", save_code.rstrip())
-            
-            # Create execution namespace WITH pre-imported modules
-            exec_globals = {
-                '__name__': '__main__',
-                '__file__': str(Path(tmpdir) / 'notebook_code.py'),
-                'pd': pd,
-                'pandas': pd,
-                'np': np,
-                'numpy': np,
-                'plt': plt,
-                'matplotlib': matplotlib,
-                'sns': sns,
-                'seaborn': sns,
-                'xr': xr,
-                'xarray': xr,
-            }
-            
-            # Execute the code directly in this process
-            exit_code = 0
-            try:
-                # Change to tmpdir for relative file operations
-                original_cwd = os.getcwd()
-                os.chdir(tmpdir)
-                
-                with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
-                    exec(modified_code, exec_globals)
-                    
-                os.chdir(original_cwd)
-            except Exception as e:
-                exit_code = 1
-                stderr_capture.write(f"\nExecution Error: {str(e)}\n")
-                import traceback
-                stderr_capture.write(traceback.format_exc())
-                os.chdir(original_cwd)
-            
-            # Collect outputs
-            output = {
-                "stdout": stdout_capture.getvalue(),
-                "stderr": stderr_capture.getvalue(),
-                "exit_code": exit_code,
-                "images": []
-            }
-            
-            # Collect generated images
-            for img_file in sorted(Path(tmpdir).glob("*.png")):
-                with open(img_file, 'rb') as f:
-                    img_data = base64.b64encode(f.read()).decode('utf-8')
-                    output["images"].append({
-                        "filename": img_file.name,
-                        "data": f"data:image/png;base64,{img_data}"
-                    })
-            
-            return output
-            
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Execution failed: {str(e)}")
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=TIMEOUT_SECONDS,
+            )
+            stdout = result.stdout
+            stderr = result.stderr
+            exit_code = result.returncode
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            stderr = f"Hard timeout: execution exceeded {TIMEOUT_SECONDS}s and was killed."
+            subprocess.run(["docker", "kill", container_name], capture_output=True)
+        except FileNotFoundError:
+            raise HTTPException(
+                status_code=503,
+                detail="Docker executable not found. Is Docker installed and on PATH?",
+            )
+
+        images = []
+        for img_file in sorted(Path(tmpdir).glob("*.png")):
+            with open(img_file, "rb") as f:
+                img_data = base64.b64encode(f.read()).decode("utf-8")
+                images.append({
+                    "filename": img_file.name,
+                    "data": f"data:image/png;base64,{img_data}",
+                })
+
+        return {
+            "stdout": stdout,
+            "stderr": stderr,
+            "exit_code": exit_code,
+            "timed_out": timed_out,
+            "images": images,
+        }
