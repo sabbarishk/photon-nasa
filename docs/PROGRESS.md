@@ -1,8 +1,82 @@
 # Progress log
 
+
 Chronological. One entry per work session, newest entry on top. This is the
 "what happened and when" record — rationale for *why* belongs in DECISIONS.md,
 not here.
+
+---
+
+## 2026-06-21 — Session 5: Phase 2a — ChromaDB vector store
+
+**Did:**
+
+**ADR-006 written first** — documented why ChromaDB over Pinecone (no API key,
+runs locally), Weaviate (over-complex schema system for this stage), FAISS
+(no metadata, no persistence layer, pushes hard problems back onto app code),
+and the optimised flat JSON approach (performance ceiling, weak interview
+story). Decision is in docs/DECISIONS.md.
+
+**`photon/app/services/vector_db.py` — new, clean ChromaDB service**
+- `PersistentClient(path=data/chroma/)` with `hnsw:space: cosine` so
+  distances are in [0, 2] and `1.0 - distance` gives cosine similarity [0, 1].
+- `add_dataset(dataset)`: embeds title + summary via `hf_api.get_embedding`,
+  then `upsert`s (idempotent) into the collection with format/tags/source_url
+  as metadata.
+- `search(query, top_k)`: embeds query, guards against `n_results > count()`
+  (ChromaDB 1.x raises on this), returns `{"id", "score", "meta"}` list
+  matching the existing API contract.
+- `count()`: returns collection size.
+- `_reset(persist_dir)`: resets singletons + deletes the collection (needed
+  because EphemeralClient is a process-level singleton in ChromaDB 1.x).
+- `:memory:` support via `EphemeralClient` when `CHROMA_PERSIST_DIR=:memory:`.
+- `data/chroma/` added to `.gitignore`.
+
+**`photon/scripts/rebuild_index.py` — one-time ingestion from vectors.json**
+- Reads the flat JSON source of truth, calls `add_dataset` for each entry.
+- Confirmed: `34 datasets indexed` on first run.
+- Runnable as: `PYTHONPATH=photon python -m photon.scripts.rebuild_index`
+
+**`photon/app/routes/query.py` — migrated to ChromaDB**
+- Replaced `VectorStore("data/vectors.json")` + manual embedding call with a
+  single `vector_db.search(req.query, req.top_k)` call.
+- API contract unchanged — frontend has no idea anything changed.
+
+**`photon/app/services/vector_store.py` — deprecated**
+- Added deprecation comment at top. File retained for reference during Phase
+  2a verification; will be deleted once ChromaDB path is confirmed stable.
+
+**Tests: `photon/tests/test_vector_db.py`**
+- `test_add_and_search`: adds 3 datasets with mocked orthogonal embeddings,
+  searches for one by meaning, asserts correct ordering and score > 0.9.
+- `test_count`: asserts count() == 0 before adds, 1/2 after each, and still
+  2 after an upsert of an existing id (idempotency check).
+- All 6 tests pass (including pre-existing ones).
+
+**Non-obvious fixes discovered during this session:**
+- ChromaDB 1.x `EphemeralClient` is a process-level singleton: calling it
+  twice returns the same in-memory store. `_reset()` must delete the
+  collection (not just clear the Python reference) to isolate tests.
+- ChromaDB raises if `n_results > count()`: search() now guards with
+  `min(top_k, coll.count())`.
+- Windows file locking: `PersistentClient` memory-maps HNSW files; temp dirs
+  can't be deleted while the client is alive. Solved by using `EphemeralClient`
+  (`:memory:`) in tests instead of temp directories.
+
+**Commits pushed:**
+- `feat: add ChromaDB vector store with persistent index`
+- `test: add vector_db tests for ChromaDB add/search and count`
+- `docs: update PROGRESS.md for session 5`
+
+**Next session options (pick one):**
+- **Phase 2b: Hash API keys at rest.** `auth.py` still compares keys in
+  plaintext. Replace with bcrypt/SHA-256 + `secrets.compare_digest`. This is
+  the last outstanding Phase 0 security item.
+- **Phase 2b: Test coverage for high-risk routes.** Write integration tests
+  for `/query` (with the new ChromaDB backend), `/workflow/generate`, and
+  the `/execute` Docker sandbox path (requires Docker running).
+- **Phase 2b: Delete `vector_store.py`** (now fully superseded by vector_db.py),
+  confirm no remaining imports, clean up `test_vector_store.py`.
 
 ---
 
