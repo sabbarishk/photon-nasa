@@ -6,6 +6,47 @@ not here.
 
 ---
 
+## 2026-06-21 — Session 3: Phase 0 security fix — Docker sandbox replaces exec() RCE
+
+**Did:**
+- Wrote ADR-005 documenting the exec() RCE, all four sandboxing options
+  considered, and why local Docker was chosen over cloud sandboxes and
+  restricted subprocess approaches.
+- Created `docker/sandbox/Dockerfile`: minimal `python:3.11-slim` image with
+  pandas, numpy, matplotlib, running as non-root user `sandbox`.
+- Rewrote `photon/app/routes/execute.py` from scratch. exec() is gone
+  entirely — no fallback, no commented-out version. Replaced with:
+  - `docker run --rm --network none --memory 256m --cpus 0.5` per request
+  - UUID-named containers so timed-out containers can be killed by name
+  - `subprocess.run(..., timeout=15)` enforcing a hard 15s wall-clock limit;
+    `docker kill <name>` called in the timeout handler to stop the container
+  - HTTP 503 with a clear message if Docker is not running — no silent fallback
+  - Removed the caller-controlled `timeout` parameter (was cosmetic; now a
+    server-side constant)
+  - Removed the `/test-imports` debug endpoint (imported from server process,
+    not the sandbox — meaningless and leaks server environment info)
+
+**How to use the new endpoint:**
+1. Build the sandbox image once: `docker build -t photon-sandbox docker/sandbox/`
+2. Ensure Docker Desktop (or the Docker daemon) is running.
+3. POST to `/execute/notebook` with `{"code": "..."}` — no API change beyond
+   the removed `timeout` field.
+
+**Remaining Phase 0 security items:**
+- `auth.py` stores and compares keys in plaintext JSON — should be hashed at
+  rest. Deferred; lower severity than the now-fixed RCE.
+
+**Note for interviews:** "The original endpoint ran user-submitted Python code
+via exec() in the server process — a textbook RCE with no isolation, no
+resource limits, and a timeout field that was accepted but never enforced. I
+replaced it with Docker container isolation: no network, 256 MB RAM cap, 0.5
+CPU cap, hard 15-second kill enforced by killing the container by name. The
+server returns 503 if Docker isn't running rather than silently falling back
+to the unsafe path. I documented the four alternatives I considered in ADR-005
+before writing a line of code."
+
+---
+
 ## 2026-06-21 — Session 2: Phase 0 security fix — leaked API key rotation and history scrub
 
 **Did:**
