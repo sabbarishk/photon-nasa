@@ -10,6 +10,100 @@ written down, not reconstructed from memory under interview pressure.
 
 ---
 
+## ADR-005 — Docker container isolation for the /execute endpoint
+
+**Date:** 2026-06-21
+**Status:** Accepted
+
+**Context:** The `/execute` endpoint accepted arbitrary user-submitted Python
+code and ran it via `exec()` inside the server process. This is a textbook
+Remote Code Execution (RCE) vulnerability: submitted code inherits the full
+privileges of the server process, has access to the filesystem, can make
+network calls, can import any installed package, can exhaust memory or CPU,
+and runs forever if it loops. The `timeout` field on the request model was
+cosmetic — it was accepted by the API but never actually enforced anywhere.
+
+**Why `exec()` is an RCE, not just a bug:**
+`exec()` does not sandbox, parse, or restrict Python code in any way. It runs
+code as if you typed it yourself in the Python REPL of the running server
+process. An attacker who can call `/execute` can read secret files, delete
+data, establish reverse shells, and exhaust every resource on the host — all
+with zero extra permissions needed, because the server process is already
+running. The only way to fix this is process isolation.
+
+**Options considered:**
+
+1. **Continue using `exec()`, add input validation / AST filtering.**
+   Parse the submitted code, reject anything that looks dangerous (imports of
+   `os`, `subprocess`, `socket`, etc.). Rejected. AST filtering is a
+   cat-and-mouse game that researchers have broken repeatedly. There is no
+   complete, safe-by-construction allow-list for Python. It gives a false
+   sense of security.
+
+2. **Restricted subprocess: run code as a subprocess of the server with
+   `subprocess.run(["python", "code.py"])`, no container.**
+   Better than `exec()` — subprocess inherits less state — but the child
+   process still has full access to the host filesystem, host network, and
+   installed packages. Memory and CPU limits require platform-specific tricks
+   (`resource.setrlimit` on Linux, nothing equivalent on Windows). Rejected
+   as insufficient isolation.
+
+3. **Paid cloud sandbox: Modal, AWS Lambda, or similar.**
+   Genuine process and network isolation, managed scaling, no infrastructure
+   to maintain. Cost is nonzero and requires an account/API key. Rejected for
+   a portfolio project for two reasons: (a) adds a hard external dependency
+   and a cost line item with no runtime budget, (b) a hiring manager cannot
+   run this locally to reproduce results.
+
+4. **Docker container isolation (local).** Run each execution inside a
+   `docker run --rm` container with `--network none`, memory and CPU caps,
+   and a hard wall-clock timeout enforced by killing the container. The
+   container runs a minimal, pinned image that has no access to host paths
+   except the per-request temporary directory. **Chosen.**
+
+**What Docker gives us:**
+
+- **Process isolation:** the user's code runs in a separate OS namespace with
+  its own PID tree, filesystem root, and user space. It cannot see or affect
+  the server process or other containers.
+- **Network isolation:** `--network none` removes all network interfaces
+  except loopback. The submitted code cannot make HTTP requests, open sockets,
+  or exfiltrate data.
+- **Resource caps:** `--memory 256m` and `--cpus 0.5` are enforced by the
+  Linux kernel's cgroup subsystem (via Docker). They cannot be bypassed from
+  inside the container.
+- **Hard timeout:** `subprocess.run(..., timeout=15)` kills the `docker run`
+  client process after 15 seconds; we then call `docker kill <name>` to stop
+  the container itself. The container is gone in at most ~15 seconds regardless
+  of what the submitted code does.
+- **Automatic cleanup:** `--rm` removes the container and its writable layer
+  immediately after the main process exits. No leftover state.
+- **Non-root user inside the container:** the sandbox image creates a
+  `sandbox` user; submitted code cannot install packages or write outside
+  the mounted `/workspace` directory.
+
+**Why local Docker and not a paid sandbox:**
+This is a portfolio project with no runtime budget. Docker is free, runs on
+any developer laptop and any CI environment, and lets an interviewer clone the
+repo and reproduce the behaviour with a single `docker build` command. The
+security properties are the same as a managed sandbox — both ultimately use
+Linux kernel namespaces and cgroups. The difference is operational: managed
+sandboxes add autoscaling and billing; local Docker adds a setup step.
+
+**Consequences:**
+- The host must have Docker installed and the daemon running. If it is not,
+  the endpoint returns HTTP 503 with a clear message — it never silently falls
+  back to the unsafe `exec()` path.
+- The sandbox image (`photon-sandbox`) must be built once before the endpoint
+  works: `docker build -t photon-sandbox docker/sandbox/`.
+- Cold start per request: ~0.5–1 s on a warm Docker daemon for container
+  spin-up. Acceptable for notebook execution; not suitable for sub-100 ms APIs.
+- The `timeout` field is removed from the request model. Timeout is now a
+  server-side constant (15 s), not a caller-controlled parameter. Callers
+  should not be able to extend their own execution window.
+
+---
+
 ## ADR-001 — Security hardening is a blocking prerequisite, not backlog
 
 **Date:** 2026-06-21
