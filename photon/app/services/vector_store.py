@@ -1,3 +1,7 @@
+# DEPRECATED: replaced by vector_db.py (ChromaDB-backed). Remove after Phase 2a is verified.
+# Nothing in the application imports this module anymore. It is kept only as a
+# recovery reference while the ChromaDB migration is being validated.
+
 import os
 import json
 import math

@@ -21,6 +21,6 @@ numpy
 # Falls back to in-memory rate limiting if Redis is unavailable.
 redis
 
-# Optional: ChromaDB vector DB backend.
-# Falls back to flat JSON file backend if not installed.
+# Vector database — persistent HNSW index with metadata storage.
+# Run `python -m photon.scripts.rebuild_index` once after install.
 chromadb
