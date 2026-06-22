@@ -70,6 +70,45 @@ project owner concludes.
 
 ---
 
+## ADR-004 — Use git-filter-repo (not filter-branch) to scrub leaked secrets from history
+
+**Date:** 2026-06-21
+**Status:** Accepted
+
+**Context:** The API key `h9Yf4aL8eITjxqeWPBvXyd3laRJB3eDu` was committed
+to the public repo inside `photon/data/api_keys.json`. Removing the file from
+the working tree and `.gitignore`-ing it is not enough — git stores every past
+snapshot, so the key remained visible in commit history via `git log -p`.
+
+**Options considered:**
+
+1. **Rotate only, don't scrub history.** Generate a new key, remove the old
+   one from the file, untrack it going forward. The old key still lives in git
+   history forever. Rejected — the repo is public, so "it's in the history"
+   is identical to "it's in plaintext on the internet."
+
+2. **`git filter-branch`** (built-in). The traditional tool for rewriting
+   history. Extremely slow on repos with many commits, error-prone to script
+   correctly, and explicitly deprecated by the Git project. Rejected.
+
+3. **BFG Repo Cleaner.** Fast Java-based tool purpose-built for removing
+   secrets/large files. Good choice but requires a JVM and is less general
+   than filter-repo. Would have been a valid pick.
+
+4. **`git filter-repo`** — the Git project's official recommended replacement
+   for filter-branch. Pure Python, fast (rewrote 34 commits in ~14 seconds),
+   single pip install, and the command is easy to reason about:
+   `--path <file> --invert-paths` means "rewrite history removing this path."
+   **Chosen.**
+
+**Consequences:** All commit SHAs changed after the rewrite. Required a
+`git push --force` to GitHub. Safe here because the repo has no other
+contributors and no known forks. After a force-push, GitHub retains the old
+objects for up to 90 days in its cache — treat the old key as permanently
+compromised regardless, which is why key rotation was done first.
+
+---
+
 ## ADR-003 — Project memory and documentation workflow
 
 **Date:** 2026-06-21
