@@ -1,67 +1,97 @@
 # Photon — project memory
 
-This file is read automatically at the start of every Claude Code session. Keep it
-short and stable — rules and facts only. Anything that changes often (plans, status,
-history) goes in docs/PROGRESS.md. Anything that needs a rationale goes in
-docs/DECISIONS.md. This file should stay under ~150 lines.
+This file is read automatically at the start of every Claude Code session.
+Keep it short and stable — rules and facts only. Anything that changes often
+goes in docs/PROGRESS.md. Rationale for decisions goes in docs/DECISIONS.md.
+Stay under ~150 lines.
 
-## What this project is
+---
 
-Photon started as a natural-language search + Jupyter notebook generator for NASA
-open datasets. It is being generalized and hardened into a portfolio-grade project
-for job applications (AI Engineer / Data Engineer / Data Scientist / Data Analyst
-roles). Primary goal: technical depth a hiring manager can interrogate end-to-end —
-not GitHub stars, not a SaaS launch.
+## What Photon is — one sentence
 
-The exact target architecture is still being decided — see docs/DECISIONS.md
-ADR-002 for the live status before assuming scope.
+Photon is an open-source AI analysis assistant: describe what you want to know
+about your data in plain English, and Photon writes the analysis code, runs it
+against your actual data in a sandboxed environment, and returns real results
+alongside the code that produced them and the methodology reasoning behind it.
 
-## Tech stack (current)
+## The core differentiator
+
+Every other LLM tool generates code but does not run it. Photon executes
+against real data. The result is not hallucinated — it comes from actual
+execution. That execution layer is the trust mechanism, and the Docker sandbox
+we already built is the entire product differentiator, not just a security fix.
+
+The RAG layer retrieves analysis methodology playbooks (not datasets) based on
+automatic data profiling. The LLM writes analysis grounded in retrieved
+methodology, not generic pandas instincts. This is what makes the approach
+appropriate for the data type, not just syntactically correct.
+
+## Target audience
+
+Any data practitioner — analyst, scientist, engineer — who wants to go from
+"I have this data and a question" to "here is a real, executed, trustworthy
+result with the code and methodology visible" without copying code into a
+notebook manually.
+
+## Two pillars — build in sequence, not in parallel
+
+**Pillar 1 (build now):** Data profiling → methodology retrieval (RAG) →
+LLM code generation → Docker execution → real results returned.
+Status: execution sandbox done. RAG layer and LLM generation are Phase 2.
+
+**Pillar 2 (after Pillar 1 is solid):** One-click promotion of a working
+analysis to a scheduled AWS pipeline with monitoring and data quality checks.
+Status: planned. Do not start until Pillar 1 is interview-ready.
+
+## Current tech stack
 
 - Backend: Python 3.11, FastAPI
 - Embeddings: sentence-transformers (all-MiniLM-L6-v2), local inference
-- Vector store: flat JSON file with NumPy cosine search (not yet a real vector DB)
-- Notebook generation: Jinja2 templates (static — not yet LLM-generated)
-- Code execution: in-process `exec()` (NOT sandboxed — see Non-negotiables below)
-- Frontend: React + Vite
-- Planned additions: LLM-grounded code generation, AWS-based productionization layer
+- Vector store: ChromaDB (persistent, cosine similarity, HNSW index)
+- Code execution: Docker container sandbox (python:3.11-slim, --network none,
+  256MB RAM, 0.5 CPU, 15s hard timeout via subprocess + docker kill)
+- LLM: Anthropic Claude API (claude-sonnet-4-6) — NOT YET WIRED IN
+- Frontend: React + Vite (single frontend/ directory at repo root)
+- Data input: any — CSV upload, URL, or built-in NASA dataset examples
 
-## Non-negotiables (do not regress these, even temporarily)
+## What is NOT built yet (Phase 2 — do not invent it)
 
-- Never commit secrets, API keys, or `.env` files. If you generate or rotate a key
-  during a session, it goes in an untracked file or environment variable, never in
-  a file that gets committed.
-- The `/execute` endpoint must never run arbitrary code via in-process `exec()`
-  without sandboxing (container isolation, resource limits, enforced wall-clock
-  timeout). This was the #1 finding of the initial security audit. Until it's
-  fixed, treat the existing `execute.py` as known-broken, not a pattern to copy.
-- Auth: API keys are never stored or compared in plaintext in new code. Don't
-  reintroduce `PHOTON_SKIP_AUTH`-style bypasses outside of clearly marked local
-  dev paths.
-- No empty stub files left in the codebase pretending to be implemented
-  (`llm.py`, `embedding.py`, `vector_db.py` were empty — either build them or
-  delete them, never leave a 0-byte file that looks finished).
+- Data profiling (schema detection, type inference, null analysis)
+- Methodology playbook knowledge base in ChromaDB
+- LLM call for code generation (llm.py does not exist yet)
+- Workflow route wired to LLM (still uses deleted Jinja2 templates)
+- Frontend data upload UI
+- Any AWS infrastructure
 
-## Workflow rules (always do these, every session)
+## Non-negotiables — never regress these
 
-1. **Commit after every meaningful change.** Use Conventional Commits style:
-   `feat:`, `fix:`, `docs:`, `refactor:`, `security:`, `chore:`. One logical
-   change per commit — don't batch unrelated edits.
-2. **Push after every commit**, unless explicitly told to hold off (e.g. mid
-   experiment on a throwaway branch).
-3. **Update `docs/PROGRESS.md`** at the end of every session — what changed, what
-   was found, what's next. Newest entry on top.
-4. **Log non-trivial decisions in `docs/DECISIONS.md`** — anything where there
-   were real alternatives (a library choice, an architecture pattern, a security
-   trade-off). If you're not sure whether something counts, ask rather than skip
-   it; this file is the interview prep material.
-5. **Explain as you go.** The person you're working with is learning hands-on and
-   needs to be able to defend every part of this project in an interview. Don't
-   just make changes — say what you changed and why in plain language before
-   moving on.
+- No secrets, API keys, or .env files committed. Ever.
+- No in-process exec() for user code. The Docker sandbox is mandatory.
+- No empty stub files that look implemented but are hollow.
+- No fallback to unsafe execution paths if Docker is unavailable — return 503.
+- API keys never stored or compared in plaintext.
 
-## Reference docs
+## Workflow rules — every session, without being asked
 
-- `README.md` — human-facing overview, what it is and how to run it
-- `docs/DECISIONS.md` — why we chose what we chose (ADR-style, append-only)
-- `docs/PROGRESS.md` — chronological session log
+1. Commit after every meaningful change. Conventional Commits:
+   feat: / fix: / docs: / refactor: / security: / chore:
+   One logical change per commit.
+2. Push after every commit.
+3. Update docs/PROGRESS.md at session end — what changed, what's next.
+   Newest entry on top.
+4. Log non-trivial decisions in docs/DECISIONS.md before implementing them.
+   If you're unsure whether something counts, log it — this file is interview
+   prep material.
+5. Explain every change in plain language as you go. The project owner is
+   learning hands-on and must be able to defend every decision in an interview.
+6. All commits are authored solely under the git identity already configured
+   (sabbarishk). Do not add Co-Authored-By lines.
+
+## Reference
+
+- README.md — human-facing project overview
+- docs/DECISIONS.md — why we chose what we chose (ADR format, append-only)
+- docs/PROGRESS.md — chronological session log
+- docker/sandbox/Dockerfile — execution sandbox image
+- photon/app/services/vector_db.py — ChromaDB retrieval layer
+- photon/app/routes/execute.py — Docker execution endpoint
