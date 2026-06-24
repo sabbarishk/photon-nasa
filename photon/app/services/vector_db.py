@@ -8,30 +8,53 @@ _CHROMA_DEFAULT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), "..", "..", "data", "chroma")
 )
 _COLLECTION_NAME = "photon_datasets"
+_PLAYBOOKS_COLLECTION_NAME = "photon_playbooks"
 
 # Lazily initialized singletons — one client and one collection per process.
 _client = None
 _collection = None
+_playbooks_collection = None
 
 
-def _get_collection():
-    global _client, _collection
-    if _collection is not None:
-        return _collection
+def _ensure_client() -> None:
+    """Create the ChromaDB client if not yet initialized."""
+    global _client
+    if _client is not None:
+        return
     persist_dir = os.environ.get("CHROMA_PERSIST_DIR", _CHROMA_DEFAULT)
     if persist_dir == ":memory:":
-        # In-memory client: no disk I/O, used by tests.
         _client = chromadb.EphemeralClient()
     else:
         persist_dir = os.path.normpath(persist_dir)
         os.makedirs(persist_dir, exist_ok=True)
         _client = chromadb.PersistentClient(path=persist_dir)
+
+
+def _get_collection():
+    global _collection
+    if _collection is not None:
+        return _collection
+    _ensure_client()
     _collection = _client.get_or_create_collection(
         name=_COLLECTION_NAME,
         metadata={"hnsw:space": "cosine"},
     )
     return _collection
 
+
+def _get_playbooks_collection():
+    global _playbooks_collection
+    if _playbooks_collection is not None:
+        return _playbooks_collection
+    _ensure_client()
+    _playbooks_collection = _client.get_or_create_collection(
+        name=_PLAYBOOKS_COLLECTION_NAME,
+        metadata={"hnsw:space": "cosine"},
+    )
+    return _playbooks_collection
+
+
+# ── Dataset store ────────────────────────────────────────────────────────────
 
 def add_dataset(dataset: dict) -> None:
     """Embed and upsert one dataset into the ChromaDB collection.
@@ -94,20 +117,58 @@ def count() -> int:
     return _get_collection().count()
 
 
+# ── Playbook store ───────────────────────────────────────────────────────────
+
+def add_playbook(data_type: str, content: str) -> None:
+    """Embed and upsert a methodology playbook document.
+
+    data_type must match one of the profiler's output values:
+    "tabular", "time_series", or "wide_format".
+    """
+    coll = _get_playbooks_collection()
+    embedding = get_embedding(content)
+    coll.upsert(
+        ids=[f"playbook_{data_type}"],
+        embeddings=[embedding],
+        documents=[content],
+        metadatas=[{"type": "playbook", "data_type": data_type}],
+    )
+
+
+def search_playbooks(data_type: str) -> str:
+    """Return the methodology playbook for a given data type.
+
+    This is a metadata filter query — not similarity search — because the
+    profiler already gives us an exact classification. Returns empty string
+    if no playbook has been loaded for this data type.
+    """
+    coll = _get_playbooks_collection()
+    result = coll.get(
+        where={"data_type": data_type},
+        include=["documents"],
+    )
+    docs = result.get("documents", [])
+    return docs[0] if docs else ""
+
+
+# ── Test helpers ─────────────────────────────────────────────────────────────
+
 def _reset(persist_dir: str = None) -> None:
     """Reset singleton state. For use in tests only.
 
-    Deletes the collection before clearing the client reference so that
-    EphemeralClient (which is a process-level singleton in ChromaDB 1.x)
-    starts clean for the next test rather than retaining old data.
+    Deletes both collections before clearing references so that
+    EphemeralClient (a process-level singleton in ChromaDB 1.x)
+    starts clean for the next test.
     """
-    global _client, _collection
+    global _client, _collection, _playbooks_collection
     if _client is not None:
-        try:
-            _client.delete_collection(_COLLECTION_NAME)
-        except Exception:
-            pass
+        for name in (_COLLECTION_NAME, _PLAYBOOKS_COLLECTION_NAME):
+            try:
+                _client.delete_collection(name)
+            except Exception:
+                pass
     _client = None
     _collection = None
+    _playbooks_collection = None
     if persist_dir is not None:
         os.environ["CHROMA_PERSIST_DIR"] = persist_dir
