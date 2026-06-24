@@ -184,3 +184,77 @@ repo.
 - Stale timeout parameter removed from frontend API call: frontend/src/
   services/api.js was still passing a timeout field to the execute endpoint
   that was removed from the backend in Phase 0.
+
+---
+
+## ADR-006 — Data profiler as pipeline entry point
+
+**Date:** 2026-06-23
+**Status:** Accepted
+
+**Context:** The LLM needs to know what kind of data it is analyzing before
+it writes a single line of code. Without profiling, the LLM receives only a
+file path or URL — it has to guess the schema, column types, and null rates.
+That leads to generic analysis code that fails at runtime on the actual data.
+
+**Decision:** Build a data profiler that runs first on every request. It
+inspects the loaded DataFrame and returns structured metadata: row count,
+column count, per-column dtype and null rate, detected data type
+(tabular / time_series / wide_format), and a plain-English summary sentence.
+This profile output serves two purposes:
+1. It is the key used to retrieve the right methodology playbook from ChromaDB
+   (the data_type field drives the metadata filter query).
+2. It is included verbatim in the LLM prompt as context about the data, so
+   the generated code references real column names and handles actual null rates.
+
+**Alternatives considered:**
+- Let the LLM infer schema from the filename or URL string alone — rejected.
+  A URL like "data.csv" tells the LLM nothing about columns or types.
+- Parse schema inside the Docker sandbox during execution — rejected.
+  By then we have already written the analysis code and committed to an
+  approach. If the approach is wrong for the data type, the code fails.
+
+**Detection logic (three categories):**
+- time_series: has at least one datetime column AND at least one numeric column
+- wide_format: more than 20 columns AND fewer than 100 rows
+- tabular: everything else (the default)
+These three categories cover the vast majority of structured data a practitioner
+brings to analysis. More categories can be added when the profiler is extended.
+
+---
+
+## ADR-007 — Methodology playbooks in ChromaDB, retrieved by metadata filter
+
+**Date:** 2026-06-23
+**Status:** Accepted
+
+**Context:** The RAG layer must retrieve methodology-appropriate analysis
+guidance before the LLM writes code. The question is what form that knowledge
+takes and how retrieval works.
+
+**Decision:** Store methodology playbooks as markdown documents in ChromaDB,
+tagged with a `data_type` metadata field. Retrieval uses `collection.get()`
+with a `where={"data_type": data_type}` filter — not a similarity search.
+
+**Why metadata filter, not similarity search:**
+The profiler gives us an exact data type classification. We don't need to ask
+"which playbook is most semantically similar to this query?" when we already
+know the answer is "the time_series playbook" because the profiler said the
+data is time_series. Similarity search adds complexity without benefit when
+the classification is deterministic.
+
+**Why markdown files, not Python code or inline prompts:**
+Markdown is human-readable, version-controllable, and editable without
+touching application code. A data scientist can improve a playbook by editing
+a text file. Inline prompts live in code and require a code change to update.
+
+**Why a separate ChromaDB collection (photon_playbooks), not the dataset collection:**
+Mixing methodology documents with dataset vectors would contaminate both:
+similarity searches over datasets would return playbooks as results, and
+playbook retrieval would need to filter out all 34 dataset entries every time.
+Two collections, two concerns, no interference.
+
+**Playbooks cover the same three categories the profiler detects:**
+tabular.md, time_series.md, wide_format.md. Any data type the profiler can
+classify has a corresponding playbook. Adding a new data type means adding both
+a detection rule in profiler.py and a new playbook file.
