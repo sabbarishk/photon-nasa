@@ -5,6 +5,70 @@ Chronological. Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-23 — Session 5 (Phase 2b: profiler + playbooks + LLM + workflow)
+
+**Did:**
+- Built data profiler (profiler.py): load_dataframe() + profile()
+  Detects: tabular / time_series / wide_format
+  Returns: row_count, column_count, per-column types/nulls, summary sentence
+  4 tests: tabular detection, time_series detection, null detection, CSV load
+- Built methodology playbooks (data/playbooks/): tabular.md, time_series.md,
+  wide_format.md — real actionable content, not placeholder text
+- Added add_playbook() and search_playbooks() to vector_db.py
+  Playbooks live in a separate photon_playbooks collection
+  Retrieval is a metadata filter (where data_type=X), not similarity search
+- Built load_playbooks.py script to ingest all three playbooks into ChromaDB
+- Built LLM generation layer (llm.py): generate_analysis_code()
+  Calls claude-sonnet-4-6 with structured 4-section prompt
+  Strips accidental markdown fences from response
+  Raises ValueError with clear message if ANTHROPIC_API_KEY not set
+  3 tests: returns code, strips fences, raises on missing key
+- Wired workflow route (routes/workflow.py) to the full pipeline:
+  load_dataframe → profile → search_playbooks → generate_analysis_code
+  New request shape: {question, source}
+  New response shape: {code, profile, methodology_used}
+  Old Jinja2/notebook approach completely replaced
+- Removed Jinja2 and nbformat from requirements.txt (no longer used)
+- Added pandas and anthropic to requirements.txt
+- Created .env.example with ANTHROPIC_API_KEY format
+
+**Key things to know for interviews:**
+- The profiler runs before the LLM — the LLM sees real column names and types,
+  not guesses from a filename. This is why the generated code works on first run.
+- Playbook retrieval is a metadata filter, not similarity search. The profiler
+  gives an exact classification; we don't need fuzzy matching.
+- Two ChromaDB collections: photon_datasets (34 NASA datasets, similarity search)
+  and photon_playbooks (3 methodology guides, metadata filter). Separate
+  collections because mixing them would contaminate both retrieval paths.
+- The workflow route returns code but does NOT execute it. Execution is a
+  separate step — the caller hits /execute with the returned code. This keeps
+  the concerns cleanly separated and lets the user inspect the code before running.
+- Mocking in tests: we mock the Anthropic client because real API calls cost
+  money, require a secret in CI, and are non-deterministic. The tests verify
+  our code's logic — key reading, prompt building, fence stripping — not Anthropic's.
+
+**What's done so far:**
+- Phase 0: Security — key rotation, Docker sandbox replacing exec(), 503 guard
+- Phase 1: Repo hygiene — node_modules scrubbed, empty stubs deleted, requirements rebuilt
+- Phase 2a: ChromaDB — persistent vector store, rebuild_index script, query route
+- Phase 2b: Full pipeline — profiler → playbook retrieval → LLM generation → workflow route
+
+**What's NOT built yet (Phase 3 — next):**
+- Connect workflow to execute: POST /workflow/generate → code → POST /execute → results
+  The two endpoints exist. They just haven't been wired into a single flow yet.
+- Frontend data upload UI: replace hardcoded NASA dataset selector with
+  "bring your own data" — file upload or URL input
+- End-to-end integration test: real CSV → profile → playbook → LLM → execute → check results
+- Pillar 2 (AWS): not started, not started until Pillar 1 is interview-ready
+
+**Next session task — Phase 3:**
+Connect the two endpoints. The workflow route returns code. The execute endpoint
+runs code. Build a thin integration layer (or update the frontend) so a user
+can go from "question + file" to "real executed results" in one action.
+Then build the frontend upload UI.
+
+---
+
 ## 2026-06-22 — Session 4 (direction locked, all docs updated)
 
 **Did:**
