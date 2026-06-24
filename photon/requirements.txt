@@ -4,10 +4,6 @@ uvicorn[standard]
 starlette
 pydantic
 
-# Notebook generation (workflow route)
-Jinja2
-nbformat
-
 # HTTP client (HuggingFace API, NASA CMR) and URL data loading
 requests
 

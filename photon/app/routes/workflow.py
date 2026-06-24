@@ -1,69 +1,49 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import os
-import nbformat
-from nbformat.v4 import new_notebook, new_code_cell
-from pathlib import Path
-from jinja2 import Template
-from uuid import uuid4
-import logging
+
+from app.services.llm import generate_analysis_code
+from app.services.profiler import load_dataframe, profile
+from app.services.vector_db import search_playbooks
 
 router = APIRouter()
 log = logging.getLogger(__name__)
 
 
 class WorkflowRequest(BaseModel):
-    dataset_url: str
-    dataset_format: str
-    variable: str
-    title: str = "Generated Workflow"
+    question: str
+    source: str
 
 
 @router.post("/generate")
-async def generate_workflow(request: WorkflowRequest):
-    """Generate analysis workflow from template"""
+def generate_workflow(req: WorkflowRequest):
+    """Profile → retrieve methodology → generate analysis code.
+
+    Does NOT execute the code — call /execute separately with the
+    returned code string.
+    """
     try:
-        template_path = Path(__file__).parent.parent / "templates" / f"{request.dataset_format.lower()}.txt"
-
-        if not template_path.exists():
-            raise HTTPException(status_code=400, detail=f"No template for format: {request.dataset_format}")
-
-        with open(template_path, "r", encoding="utf-8") as f:
-            template_str = f.read()
-
-        template = Template(template_str)
-        code = template.render(
-            dataset_url=request.dataset_url,
-            variable=request.variable,
-            title=request.title
-        )
-
-        # ← ADD THIS: Strip BOM and other invisible characters
-        code = code.lstrip('\ufeff\ufbf0\ufbf1\ufbf2')  # Remove UTF-8/16/32 BOM
-        code = code.strip()  # Remove leading/trailing whitespace
-
-        notebook = {
-            "cells": [
-                {
-                    "cell_type": "code",
-                    "execution_count": None,
-                    "id": str(uuid4())[:8],
-                    "metadata": {},
-                    "outputs": [],
-                    "source": code.split('\n')  # nbformat expects list of lines
-                }
-            ],
-            "metadata": {},
-            "nbformat": 4,
-            "nbformat_minor": 5
-        }
-
-        return {
-            "notebook": notebook,
-            "preview": code[:500],
-            "format": request.dataset_format
-        }
-
+        df = load_dataframe(req.source)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        log.error(f"Workflow generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate workflow: {str(e)}")
+        log.error("Failed to load data from %s: %s", req.source, e)
+        raise HTTPException(status_code=400, detail=f"Could not load data: {e}")
+
+    data_profile = profile(df)
+    playbook = search_playbooks(data_profile["data_type"])
+
+    try:
+        code = generate_analysis_code(req.question, data_profile, playbook, req.source)
+    except ValueError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        log.error("LLM generation failed: %s", e)
+        raise HTTPException(status_code=500, detail="Code generation failed")
+
+    return {
+        "code": code,
+        "profile": data_profile,
+        "methodology_used": data_profile["data_type"],
+    }
