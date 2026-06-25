@@ -258,3 +258,61 @@ Two collections, two concerns, no interference.
 tabular.md, time_series.md, wide_format.md. Any data type the profiler can
 classify has a corresponding playbook. Adding a new data type means adding both
 a detection rule in profiler.py and a new playbook file.
+
+---
+
+## ADR-008 — AWS Lambda replaces Docker as the execution sandbox
+
+**Date:** 2026-06-23
+**Status:** Accepted — supersedes Docker sandbox from ADR-001 for execution layer
+
+**Context:** Docker Desktop is not installed on the development machine and
+requires a separate install. More importantly, a Lambda-based execution layer
+serves a dual purpose: it acts as the sandboxed executor for Pillar 1 (running
+analysis code safely) AND it is the natural foundation for Pillar 2 (promoting
+a working analysis to a scheduled AWS pipeline). Building the Lambda layer now
+means Phase 3 (connect workflow to execute) and Pillar 2 share the same
+infrastructure instead of requiring a Docker → Lambda migration later.
+
+The core non-negotiable from ADR-001 is preserved: user code never runs
+in-process. It runs in an isolated, resource-limited, network-controlled
+environment managed by AWS. Lambda enforces this at the infrastructure level —
+it is strictly more isolated than a local Docker container.
+
+**Decision:** Replace the local Docker sandbox with an AWS Lambda function
+(photon-code-executor, us-east-1) as the code execution backend. The execute
+route calls Lambda instead of spinning up a local container.
+
+**What changes:**
+- /execute sends code to Lambda via boto3 instead of subprocess + docker run
+- Hard limits move from Docker flags to Lambda configuration:
+  memory (256MB), timeout (15s), no VPC = no outbound internet
+- Lambda Layer provides pandas/numpy/matplotlib to the function runtime
+
+**What does NOT change:**
+- User code never runs in-process (the non-negotiable)
+- The API contract for /execute stays the same — callers don't know or care
+  whether execution is local Docker or remote Lambda
+- The 503 guard stays: if Lambda is unreachable, return 503
+
+**Why Lambda over alternatives:**
+- Fargate: containers on demand, but cold start is 10–30s vs Lambda's ~1s.
+  Also requires a VPC and load balancer to expose. Much more operational
+  overhead for the same isolation guarantee.
+- Keep Docker local: Docker is not installed, and a Lambda function already
+  exists. The path of least friction is also the architecturally better choice.
+- EC2 instance running Docker: persistent cost, not serverless, more to manage.
+
+**Lambda Layer — why it is needed:**
+Lambda's base Python 3.11 runtime includes only the standard library. pandas,
+numpy, and matplotlib are not included. A Lambda Layer is a zip file with the
+structure python/[packages] that Lambda attaches to the function's filesystem
+before execution. The layer must contain Linux (manylinux2014_x86_64) binaries
+because Lambda runs on Amazon Linux 2, not Windows or macOS.
+
+**Interview answer:**
+"I replaced the local Docker sandbox with AWS Lambda because Lambda gives the
+same isolation guarantee — user code never runs in-process — while also
+serving as the foundation for Pillar 2's scheduled pipeline promotion. The
+execution infrastructure scales automatically and I don't manage a Docker
+daemon in production."
