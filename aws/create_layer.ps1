@@ -1,20 +1,20 @@
 # Builds the Lambda Layer zip containing pandas, numpy, and matplotlib.
+# Lambda requires python/ at the zip root — packages live at python/pandas/, etc.
 # Must use --platform and --only-binary flags so pip downloads Linux binaries.
 # Lambda runs on Amazon Linux 2 (x86_64) — Windows binaries will not work.
 
-$LayerDir = "lambda_layer"
-$ZipName  = "photon-layer.zip"
+$ZipName = "photon-layer.zip"
 
 Write-Host "Cleaning up previous build..."
-if (Test-Path $LayerDir) { Remove-Item -Recurse -Force $LayerDir }
-if (Test-Path $ZipName)  { Remove-Item -Force $ZipName }
+Remove-Item -Recurse -Force python -ErrorAction SilentlyContinue
+Remove-Item -Force $ZipName -ErrorAction SilentlyContinue
 
-Write-Host "Creating $LayerDir\python\ ..."
-New-Item -ItemType Directory -Force -Path "$LayerDir\python" | Out-Null
+Write-Host "Creating python\ directory..."
+New-Item -ItemType Directory -Name python | Out-Null
 
 Write-Host "Installing packages (Linux binaries, Python 3.11)..."
 python -m pip install pandas numpy matplotlib `
-    -t "$LayerDir\python" `
+    -t python `
     --platform manylinux2014_x86_64 `
     --only-binary=:all: `
     --python-version 3.11
@@ -25,14 +25,16 @@ if (-not $?) {
 }
 
 Write-Host ""
-Write-Host "Zipping (structure: python\ at zip root)..."
-# Compress-Archive uses old COM zip APIs that fail on AV-locked files.
+Write-Host "Zipping (python\ becomes zip root entry)..."
+# Compress-Archive fails on AV-locked files after a fresh pip install.
 # ZipFile.CreateFromDirectory uses FileShare.Read and handles it correctly.
-# Zipping lambda_layer\ (not lambda_layer\python) so python\ appears at the zip root.
+# We zip the PARENT of python\ (the cwd) so the zip contains python\...
+# but we only want python\ — so we use the overload that accepts includeBaseDirectory.
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$fullLayerDir = (Resolve-Path $LayerDir).Path
-$fullZipPath  = [System.IO.Path]::Combine((Get-Location).Path, $ZipName)
-[System.IO.Compression.ZipFile]::CreateFromDirectory($fullLayerDir, $fullZipPath)
+$pythonDir  = [System.IO.Path]::Combine((Get-Location).Path, "python")
+$fullZipPath = [System.IO.Path]::Combine((Get-Location).Path, $ZipName)
+# includeBaseDirectory = $true means the zip root entry is "python/" not the contents directly
+[System.IO.Compression.ZipFile]::CreateFromDirectory($pythonDir, $fullZipPath, [System.IO.Compression.CompressionLevel]::Optimal, $true)
 
 $bytes = (Get-Item $ZipName).Length
 $mb    = [math]::Round($bytes / 1MB, 1)

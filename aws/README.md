@@ -84,8 +84,61 @@ aws lambda update-function-configuration \
   --region us-east-1
 ```
 
+## IAM permissions — least-privilege setup
+
+The FastAPI backend calls Lambda via boto3. It needs exactly one permission:
+`lambda:InvokeFunction` on the `photon-code-executor` function. Nothing else.
+
+**Step 1 — Create an IAM policy:**
+
+Go to AWS Console → IAM → Policies → Create policy → JSON tab, paste:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": "arn:aws:lambda:us-east-1:*:function:photon-code-executor"
+    }
+  ]
+}
+```
+
+Name it `photon-invoke-executor`.
+
+**Step 2 — Create an IAM user:**
+
+AWS Console → IAM → Users → Create user.
+Name: `photon-backend`
+Attach the `photon-invoke-executor` policy directly.
+
+**Step 3 — Create access keys:**
+
+IAM → Users → photon-backend → Security credentials tab →
+Access keys → Create access key → Application running outside AWS.
+
+Copy both values immediately — the secret is only shown once.
+
+**Step 4 — Add to .env:**
+
+```
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=us-east-1
+```
+
+Never commit these values. `.env` is in `.gitignore`.
+
+**Why this matters for interviews:**
+Granting only `lambda:InvokeFunction` on one specific function ARN follows
+the principle of least privilege. If these credentials are ever leaked, the
+attacker can invoke the sandbox function but cannot read S3, modify IAM,
+access other Lambda functions, or do anything else in your AWS account.
+
 ## Files not committed to git
 
-`lambda_layer/` and `photon-layer.zip` are build artifacts. They are listed
-in `.gitignore` and should never be committed. The scripts regenerate them
-from scratch in minutes.
+`lambda_layer/`, `/python/`, and `photon-layer.zip` are build artifacts.
+They are listed in `.gitignore` and should never be committed. The scripts
+regenerate them from scratch in minutes.

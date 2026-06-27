@@ -27,3 +27,7 @@ chromadb
 # LLM code generation — calls Anthropic API with profile + methodology context.
 # Requires ANTHROPIC_API_KEY environment variable (see .env.example).
 anthropic
+
+# AWS SDK — invokes Lambda for sandboxed code execution.
+# Requires AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (see .env.example).
+boto3

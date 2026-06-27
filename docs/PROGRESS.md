@@ -5,6 +5,58 @@ Chronological. Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-23 — Session 6 (Phase 3: Lambda execution wired into pipeline)
+
+**Did:**
+- Confirmed Lambda sandbox works: pandas/numpy/matplotlib import, charts
+  save to /tmp/output.png and return as base64, exit code 0
+- Created photon/app/services/lambda_executor.py: execute_via_lambda(code)
+  Calls photon-code-executor via boto3 RequestResponse invocation
+  Handles FunctionError (Lambda-side crash) and returns consistent dict
+- Rewrote photon/app/routes/execute.py: removed all Docker/subprocess logic,
+  now calls execute_via_lambda(). Response shape unchanged (images[] list).
+  Updated _SAVEFIG_SNIPPET path from /workspace/ to /tmp/ (Lambda writable dir)
+- Updated photon/app/routes/workflow.py: added step 5 (execute_via_lambda)
+  Full pipeline now: load → profile → retrieve → generate → execute
+  Response now includes "execution" key with stdout/stderr/exit_code/output_image
+- Added boto3 to requirements.txt
+- Updated .env.example with AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
+- Added IAM least-privilege setup instructions to aws/README.md
+  Policy: lambda:InvokeFunction on photon-code-executor ARN only
+
+**Key things to know for interviews:**
+- The /workflow/generate endpoint now returns real executed results, not just
+  generated code. One HTTP call goes from question+data to actual output.
+- Lambda FunctionError vs user code failure: FunctionError means the Lambda
+  handler itself crashed (timeout, OOM, import error in the handler). A
+  non-zero exit_code in the body means user code failed. These are different
+  failure modes and handled separately.
+- timed_out is always False in the execute route because Lambda enforces its
+  own timeout at the infrastructure level — we never see a partial execution.
+- Least-privilege IAM: backend credentials can ONLY invoke one specific Lambda
+  function. A leaked key cannot touch S3, IAM, other functions, or anything else.
+- boto3 picks up credentials from environment variables automatically:
+  AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION.
+
+**What's done so far:**
+- Phase 0: Security — key rotation, Docker sandbox replacing exec(), 503 guard
+- Phase 1: Repo hygiene — node_modules scrubbed, empty stubs deleted, requirements rebuilt
+- Phase 2a: ChromaDB — persistent vector store, rebuild_index script, query route
+- Phase 2b: Full pipeline — profiler → playbook retrieval → LLM generation → workflow route
+- Phase 3: Lambda execution — sandbox confirmed, wired into execute + workflow routes
+
+**What's NOT built yet:**
+- Frontend data upload UI: replace hardcoded NASA dataset selector with
+  "bring your own data" — file upload or URL input
+- End-to-end integration test: real CSV → profile → playbook → LLM → Lambda → check results
+- Pillar 2 (AWS pipeline promotion): not started
+
+**Next session:**
+Build the frontend upload UI so a user can drop a CSV and ask a question
+from the browser, triggering the full pipeline and seeing real results.
+
+---
+
 ## 2026-06-23 — Session 5 (Phase 2b: profiler + playbooks + LLM + workflow)
 
 **Did:**
