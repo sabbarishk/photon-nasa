@@ -5,6 +5,77 @@ Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-27 — Session 10: Phase 2 executive UI complete
+
+**Did:**
+- Replaced frontend/index.html: removed NASA branding, updated title to
+  "Photon — AI Data Analyst", added JetBrains Mono font alongside Inter
+- Replaced frontend/src/index.css: full design system CSS variables
+  (--bg-base #09090b, --accent-primary #6366f1, all semantic tokens),
+  keyframes fadeIn/shimmer/spin, zero NASA color references
+- Updated tailwind.config.js: CSS variable tokens replacing NASA colors,
+  added font-mono family (JetBrains Mono)
+- Created frontend/src/pages/Landing.jsx: full landing page with fixed
+  navbar (blur backdrop), hero section with radial gradient, badge pill,
+  48px display H1, two CTAs, feature section (3 columns, lucide icons),
+  footer — zero NASA references anywhere
+- Created frontend/src/pages/Workspace.jsx: split-panel workspace (380px
+  left + flex-1 right), drag-drop file upload, URL input, conversation
+  thread with user/assistant bubbles, suggestion chips below assistant
+  messages, empty/loading/results states in right panel — never uses a
+  spinner, uses StepProgress + skeleton cards during load
+- Created frontend/src/components/ui/KPICard.jsx: label/value/delta,
+  staggered fade-in by index, delta colors from design tokens
+- Created frontend/src/components/ui/Badge.jsx: tabular/time_series/
+  wide_format/success/error/warning variants with exact colors from spec
+- Created frontend/src/components/ui/Skeleton.jsx: shimmer gradient
+  animation, matches DESIGN.md spec exactly
+- Created frontend/src/components/ui/SuggestionChip.jsx: pill style,
+  accent-muted hover, 150ms transition
+- Created frontend/src/components/ui/StepProgress.jsx: CheckCircle2/
+  Loader2/pending circle per step, fades in as analysis progresses
+- Replaced frontend/src/services/api.js: analyzeData() and uploadFile()
+  functions using fetch (no axios dependency), conversation_history passed
+- Replaced frontend/src/App.jsx: / → Landing, /analyze → Workspace,
+  removed old Navbar/Footer/WorkflowGenerator wrappers
+- Created photon/app/routes/upload.py: POST /upload/ accepts CSV/xlsx,
+  saves to /tmp/photon_uploads/{uuid}{ext}, returns path + filename
+- Registered upload router in photon/app/main.py
+- Fixed workflow.py: PHOTON_SUMMARY and narrative now parsed based on
+  whether output exists (not exit_code==0), handles cases where
+  matplotlib tight_layout warning causes exit_code=1 despite success
+
+**Test results:**
+- Vite build: ✓ 1522 modules, zero errors
+- API test (airtravel URL): exit_code=0, kpi_cards=5, image=YES,
+  narrative=873 chars, suggestions=3
+- Backend routes confirmed: /query/, /workflow/generate, /upload/, /health
+
+**What's done in v2 so far:**
+- [x] Conversation memory: message history passed per turn
+- [x] Multi-panel dashboard code generation (2-4 charts)
+- [x] KPI card extraction from PHOTON_SUMMARY marker
+- [x] Second LLM pass: AI insight narrative generation
+- [x] Follow-up suggestion generation (third LLM call)
+- [x] Excel file support (.xlsx via openpyxl)
+- [x] Structured response format: all 8 fields
+- [x] Design system: CSS variables, Inter + JetBrains Mono fonts
+- [x] Landing page: hero, features, footer, no NASA branding
+- [x] Analysis workspace: split-panel, conversation thread, KPI cards,
+      chart display, insight narrative, suggestion chips, code toggle
+- [x] UI components: KPICard, Badge, Skeleton, SuggestionChip, StepProgress
+- [x] File upload endpoint: /upload/ for CSV and Excel
+- [x] Routing: / → Landing, /analyze → Workspace
+- [ ] Demo mode with synthetic manufacturing dataset (Phase 2 remaining)
+- [ ] Anomaly detection improvement
+- [ ] Pillar 2 (Phase 3)
+
+**Next session:**
+Demo mode: synthetic manufacturing dataset, preloaded questions.
+Then Pillar 2 if time allows.
+
+---
+
 ## 2026-06-27 — Session 9: Phase 1 conversational backend complete
 
 **Did:**
