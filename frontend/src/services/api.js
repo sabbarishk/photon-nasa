@@ -1,73 +1,29 @@
-import axios from 'axios'
+const API_BASE = 'http://localhost:8000'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-export const searchDatasets = async (query, topK = 5) => {
-  try {
-    const response = await api.post('/query/', {
-      query,
-      top_k: topK
-    })
-    return response.data
-  } catch (error) {
-    console.error('Search error:', error)
-    throw error
-  }
-}
-
-export const generateWorkflow = async (datasetUrl, format, variable, title) => {
-  try {
-    const response = await api.post('/workflow/generate', {
-      dataset_url: datasetUrl,
-      dataset_format: format,
-      variable: variable,
-      title: title || 'Generated Workflow'
-    })
-    return response.data
-  } catch (error) {
-    console.error('Workflow generation error:', error)
-    throw error
-  }
-}
-
-export const checkHealth = async () => {
-  try {
-    const response = await api.get('/health')
-    return response.data
-  } catch (error) {
-    console.error('Health check error:', error)
-    throw error
-  }
-}
-
-export const executeNotebook = async (code) => {
-  try {
-    const response = await api.post('/execute/notebook', { code })
-    return response.data
-  } catch (error) {
-    console.error('Notebook execution error:', error)
-    throw error
-  }
-}
-
-export async function generateAnalysis(question, source) {
-  const response = await fetch('http://localhost:8000/workflow/generate', {
+export async function analyzeData(question, source, conversationHistory = []) {
+  const res = await fetch(`${API_BASE}/workflow/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question, source }),
+    body: JSON.stringify({
+      question,
+      source,
+      conversation_history: conversationHistory,
+    }),
   })
-  if (!response.ok) {
-    const err = await response.json()
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
     throw new Error(err.detail || 'Analysis failed')
   }
-  return response.json()
+  return res.json()
 }
 
-export default api
+export async function uploadFile(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${API_BASE}/upload/`, { method: 'POST', body: form })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error || err.detail || 'Upload failed')
+  }
+  return res.json()
+}
