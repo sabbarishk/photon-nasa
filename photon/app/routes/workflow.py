@@ -88,13 +88,16 @@ def generate_workflow(req: WorkflowRequest):
     }
 
     # Step 5: parse KPIs and anomalies from PHOTON_SUMMARY marker in stdout.
-    kpi_cards, anomalies = [], []
-    if execution_result["exit_code"] == 0:
-        kpi_cards, anomalies = _parse_summary(execution_result["stdout"])
+    # Gate on PHOTON_SUMMARY presence rather than exit_code: the generated code
+    # sometimes exits with 1 due to a harmless matplotlib warning after saving
+    # the chart, but the analysis output is still valid.
+    stdout = execution_result["stdout"]
+    has_output = bool(execution_result["output_image"]) or "PHOTON_SUMMARY:" in stdout
+    kpi_cards, anomalies = _parse_summary(stdout)
 
-    # Step 6: generate insight narrative (second LLM pass, only on success).
+    # Step 6: generate insight narrative (second LLM pass, only when output exists).
     insight_narrative = ""
-    if execution_result["exit_code"] == 0:
+    if has_output:
         insight_narrative = generate_insight_narrative(
             req.question,
             data_profile,
