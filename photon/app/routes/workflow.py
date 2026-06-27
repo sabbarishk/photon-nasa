@@ -1,3 +1,4 @@
+import json
 import logging
 
 from fastapi import APIRouter, HTTPException
@@ -15,11 +16,25 @@ log = logging.getLogger(__name__)
 class WorkflowRequest(BaseModel):
     question: str
     source: str
+    conversation_history: list = []
+    session_id: str = ""
+
+
+def _parse_summary(stdout: str) -> tuple:
+    """Extract KPI cards and anomalies from the PHOTON_SUMMARY marker in stdout."""
+    if not stdout or "PHOTON_SUMMARY:" not in stdout:
+        return [], []
+    try:
+        json_str = stdout.split("PHOTON_SUMMARY:")[1].strip()
+        summary = json.loads(json_str)
+        return summary.get("kpis", []), summary.get("anomalies", [])
+    except Exception:
+        return [], []
 
 
 @router.post("/generate")
 def generate_workflow(req: WorkflowRequest):
-    # Step 1-2: load and profile the data.
+    # Step 1: load and profile the data.
     try:
         df = load_dataframe(req.source)
     except ValueError as e:
@@ -30,10 +45,10 @@ def generate_workflow(req: WorkflowRequest):
 
     data_profile = profile(df)
 
-    # Step 3: retrieve the methodology playbook for this data type.
+    # Step 2: retrieve methodology playbook.
     playbook = search_playbooks(data_profile["data_type"])
 
-    # Step 4: generate analysis code grounded in profile + playbook.
+    # Step 3: generate analysis code.
     try:
         code = generate_analysis_code(req.question, data_profile, playbook, req.source)
     except ValueError as e:
@@ -42,7 +57,7 @@ def generate_workflow(req: WorkflowRequest):
         log.error("LLM generation failed: %s", e)
         raise HTTPException(status_code=500, detail="Code generation failed")
 
-    # Step 5: execute in Lambda sandbox and return real results.
+    # Step 4: execute in Lambda sandbox.
     try:
         execution = execute_via_lambda(code)
     except Exception as e:
@@ -55,14 +70,25 @@ def generate_workflow(req: WorkflowRequest):
             ),
         )
 
+    execution_result = {
+        "stdout": execution.get("stdout", ""),
+        "stderr": execution.get("stderr", ""),
+        "exit_code": execution.get("exit_code", 1),
+        "output_image": execution.get("output_image"),
+    }
+
+    # Step 5: parse KPIs and anomalies from PHOTON_SUMMARY marker in stdout.
+    kpi_cards, anomalies = [], []
+    if execution_result["exit_code"] == 0:
+        kpi_cards, anomalies = _parse_summary(execution_result["stdout"])
+
     return {
         "code": code,
         "profile": data_profile,
         "methodology_used": data_profile["data_type"],
-        "execution": {
-            "stdout": execution.get("stdout", ""),
-            "stderr": execution.get("stderr", ""),
-            "exit_code": execution.get("exit_code", 1),
-            "output_image": execution.get("output_image"),
-        },
+        "execution": execution_result,
+        "kpi_cards": kpi_cards,
+        "anomalies": anomalies,
+        "insight_narrative": "",
+        "follow_up_suggestions": [],
     }
