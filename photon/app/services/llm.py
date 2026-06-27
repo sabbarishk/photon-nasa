@@ -227,9 +227,11 @@ Datetime columns: {datetime_cols}
 Write Python code that does ALL of the following:
 
 1. Load data from: {source}
-   - If URL: import requests, import io, fetch with requests.get(), then pd.read_csv(io.StringIO(response.text)) or pd.read_excel(io.BytesIO(response.content))
-   - If local path: pd.read_csv() or pd.read_excel()
-   - Always import io at the top.
+   - pandas can load URLs directly — just pass the URL string to pd.read_csv() or pd.read_excel().
+   - For CSV: df = pd.read_csv("{source}")
+   - For Excel (.xlsx): df = pd.read_excel("{source}")
+   - Do NOT use requests or urllib — pandas handles URL fetching internally.
+   - Always import io at the top (needed for StringIO if you use it elsewhere).
 
 2. Produce a DASHBOARD figure with 2-4 subplots.
    - Each subplot answers a different analytical question about the data.
