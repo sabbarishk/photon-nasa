@@ -5,6 +5,60 @@ Chronological. Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-26 — Session 8 (Phase 3: frontend UI built and connected)
+
+**Did:**
+- Rewrote WorkflowGenerator.jsx from scratch — three-state UI:
+  - State 1 (Input): centered card with URL + question fields, Analyze button
+  - State 2 (Loading): spinner + 5 named steps cycling every 8s
+    (Loading data → Profiling → Retrieving methodology → Generating code → Executing on Lambda)
+  - State 3 (Results): 4 sections — profile card, methodology banner,
+    chart/stdout, collapsible generated code
+- Profile card: rows × cols badge, data_type colored badge, summary,
+  column table (name | type | nulls%)
+- Methodology banner: blue=tabular, green=time_series, purple=wide_format
+- Results: renders base64 PNG chart as <img>, stdout in green code block,
+  error in red bordered card if exit_code !== 0
+- Collapsible code section with "Show generated code" toggle
+- Updated App.jsx: WorkflowGenerator is now the landing page (removed
+  Hero + Search from main route, DatasetProvider no longer needed)
+- Added generateAnalysis() to api.js: native fetch POST to
+  /workflow/generate, throws Error with backend detail on failure
+- Tested end-to-end in browser: profile card, methodology banner, chart,
+  stdout, and code all rendered correctly for airtravel.csv
+
+**Key things to know for interviews:**
+- The three-state pattern (input → loading → results) keeps the user
+  informed during the 20-60 second pipeline run. The step animation
+  cycles with setInterval cleaned up in useEffect return.
+- Tailwind class names for dynamic colors must be complete strings at
+  build time (no string interpolation) so PurgeCSS keeps them.
+  Used separate constant objects: TYPE_BADGE, METHOD_BANNER.
+- generateAnalysis uses native fetch, not axios, because it's a single
+  call with no shared base URL config needed.
+- load_dotenv() must be before all other imports in main.py so env vars
+  are available when FastAPI and service modules import at startup.
+
+**What's done so far:**
+- Phase 0: Security — key rotation, Docker sandbox replacing exec(), 503 guard
+- Phase 1: Repo hygiene — node_modules scrubbed, empty stubs deleted, requirements rebuilt
+- Phase 2a: ChromaDB — persistent vector store, rebuild_index script, query route
+- Phase 2b: Full pipeline — profiler → playbook retrieval → LLM generation → workflow route
+- Phase 3: Lambda execution — sandbox confirmed, wired into execute + workflow routes
+- Phase 3 verified: end-to-end test passed, exit_code 0, chart returned
+- Phase 3 frontend: browser UI built, connected to backend, renders profile + chart + code
+
+**What's NOT built yet:**
+- Automated end-to-end integration test suite
+- Pillar 2 (AWS pipeline promotion): not started
+
+**Next session:**
+Pillar 1 is interview-ready. Decide: polish the frontend further (error
+UX, "try an example" button, mobile layout) or start Pillar 2 (one-click
+promotion to scheduled AWS pipeline).
+
+---
+
 ## 2026-06-26 — Session 7 (Phase 3: end-to-end pipeline confirmed working)
 
 **Did:**
