@@ -1,408 +1,265 @@
-import { useState, useEffect } from 'react'
-import { FileCode, Loader2, Download, Eye, CheckCircle, Play, Image as ImageIcon } from 'lucide-react'
-import { generateWorkflow, executeNotebook } from '../services/api'
-import { useDataset } from '../context/DatasetContext'
+import { useState, useEffect, useRef } from 'react'
+import { generateAnalysis } from '../services/api'
+
+const LOADING_STEPS = [
+  'Loading your data...',
+  'Profiling dataset...',
+  'Retrieving analysis methodology...',
+  'Generating analysis code...',
+  'Executing on AWS Lambda...',
+]
+
+const TYPE_BADGE = {
+  tabular:     'bg-blue-600',
+  time_series: 'bg-green-600',
+  wide_format:  'bg-purple-600',
+}
+
+const METHOD_BANNER = {
+  tabular:     'bg-blue-900/40 border-blue-500/30 text-blue-300',
+  time_series: 'bg-green-900/40 border-green-500/30 text-green-300',
+  wide_format:  'bg-purple-900/40 border-purple-500/30 text-purple-300',
+}
 
 function WorkflowGenerator() {
-  const { selectedDataset, clearDataset } = useDataset()
-  const [formData, setFormData] = useState({
-    datasetUrl: '',
-    format: 'csv',
-    variable: '',
-    title: ''
-  })
-  
-  // Auto-populate form when dataset is selected
+  const [state, setState]       = useState('input') // 'input' | 'loading' | 'results'
+  const [source, setSource]     = useState('')
+  const [question, setQuestion] = useState('')
+  const [stepIndex, setStepIndex] = useState(0)
+  const [result, setResult]     = useState(null)
+  const [error, setError]       = useState(null)
+  const [showCode, setShowCode] = useState(false)
+  const intervalRef             = useRef(null)
+
   useEffect(() => {
-    if (selectedDataset) {
-      setFormData({
-        datasetUrl: selectedDataset.url,
-        format: selectedDataset.format || 'csv',
-        variable: selectedDataset.variable || '',
-        title: selectedDataset.title || ''
-      })
-      // Clear the selected dataset after populating
-      // clearDataset()
-    }
-  }, [selectedDataset])
-  const [notebook, setNotebook] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [executing, setExecuting] = useState(false)
-  const [executionResult, setExecutionResult] = useState(null)
-  const [error, setError] = useState(null)
-  const [showPreview, setShowPreview] = useState(false)
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    
-    try {
-      const data = await generateWorkflow(
-        formData.datasetUrl,
-        formData.format,
-        formData.variable,
-        formData.title
+    if (state === 'loading') {
+      setStepIndex(0)
+      intervalRef.current = setInterval(
+        () => setStepIndex(i => Math.min(i + 1, LOADING_STEPS.length - 1)),
+        8000
       )
-      setNotebook(data)
-      setShowPreview(true)
-    } catch (err) {
-      setError('Failed to generate workflow. Please check your inputs and try again.')
-      console.error(err)
-    } finally {
-      setLoading(false)
+    } else {
+      clearInterval(intervalRef.current)
     }
-  }
+    return () => clearInterval(intervalRef.current)
+  }, [state])
 
-  const executeCode = async () => {
-    if (!notebook || !notebook.notebook) return
-    
-    setExecuting(true)
+  const handleAnalyze = async (e) => {
+    e.preventDefault()
     setError(null)
-    setExecutionResult(null)
-    
+    setResult(null)
+    setShowCode(false)
+    setState('loading')
     try {
-      // Parse notebook to get code
-      const nb = typeof notebook.notebook === 'string' 
-        ? JSON.parse(notebook.notebook) 
-        : notebook.notebook
-      
-      // Extract code from cells
-      const code = nb.cells
-        .filter(cell => cell.cell_type === 'code')
-        .map(cell => Array.isArray(cell.source) ? cell.source.join('\n') : cell.source)
-        .join('\n\n')
-      
-      // Execute code
-      const result = await executeNotebook(code)
-      setExecutionResult(result)
-      
-      if (result.exit_code !== 0 && result.stderr) {
-        setError(`Execution completed with warnings: ${result.stderr.substring(0, 200)}`)
-      }
+      const data = await generateAnalysis(question, source)
+      setResult(data)
+      setState('results')
     } catch (err) {
-      setError('Failed to execute notebook. Make sure the dataset URL is accessible.')
-      console.error(err)
-    } finally {
-      setExecuting(false)
+      setError(err.message)
+      setState('input')
     }
   }
 
-  const downloadNotebook = () => {
-    if (!notebook || !notebook.notebook) return
-    
-    // notebook.notebook is already a JSON string from the API
-    const notebookContent = typeof notebook.notebook === 'string' 
-      ? notebook.notebook 
-      : JSON.stringify(notebook.notebook, null, 2)
-    
-    const blob = new Blob([notebookContent], {
-      type: 'application/json'
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${formData.title || 'workflow'}.ipynb`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  const handleReset = () => {
+    setState('input')
+    setResult(null)
+    setError(null)
+    setShowCode(false)
   }
 
-  return (
-    <div id="generate" className="py-16 px-4 bg-nasa-dark/50">
-      <div className="container mx-auto max-w-5xl">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-white mb-4">Generate Analysis Workflow</h2>
-          <p className="text-gray-400">
-            Automatically create a Jupyter notebook for your NASA dataset
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Form */}
-          <div className="glass-effect rounded-lg p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+  // ── STATE 1: Input ──────────────────────────────────────────────────────────
+  if (state === 'input') {
+    return (
+      <main className="flex-1 py-16 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="glass-effect rounded-xl p-8">
+            <h1 className="text-3xl font-bold text-white mb-2">Analyze your data</h1>
+            <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+              Paste a public CSV URL or describe your data source. Ask any question about it.
+            </p>
+            <form onSubmit={handleAnalyze} className="space-y-5">
               <div>
-                <label className="block text-gray-300 mb-2 font-semibold">
-                  Dataset URL <span className="text-nasa-red">*</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.datasetUrl}
-                  onChange={(e) => setFormData({ ...formData, datasetUrl: e.target.value })}
-                  placeholder="https://data.giss.nasa.gov/..."
-                  required
-                  className="w-full bg-white/5 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-nasa-red transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-2 font-semibold">
-                  Dataset Format <span className="text-nasa-red">*</span>
-                </label>
-                <select
-                  value={formData.format}
-                  onChange={(e) => setFormData({ ...formData, format: e.target.value })}
-                  className="w-full bg-white/5 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-nasa-red transition"
-                >
-                  <option value="csv">CSV</option>
-                  <option value="netcdf">NetCDF</option>
-                  <option value="hdf5">HDF5</option>
-                  <option value="json">JSON</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-gray-300 mb-2 font-semibold">
-                  Variable to Analyze <span className="text-nasa-red">*</span>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Data source URL
                 </label>
                 <input
                   type="text"
-                  value={formData.variable}
-                  onChange={(e) => setFormData({ ...formData, variable: e.target.value })}
-                  placeholder="e.g., temperature, J-D, surface_temp"
+                  value={source}
+                  onChange={e => setSource(e.target.value)}
+                  placeholder="https://example.com/data.csv"
                   required
-                  className="w-full bg-white/5 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-nasa-red transition"
+                  className="w-full bg-white/5 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
-
               <div>
-                <label className="block text-gray-300 mb-2 font-semibold">
-                  Workflow Title
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Your question
                 </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="My NASA Data Analysis"
-                  className="w-full bg-white/5 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-nasa-red transition"
+                <textarea
+                  value={question}
+                  onChange={e => setQuestion(e.target.value)}
+                  placeholder="What is the trend over time? Which category has the highest values?"
+                  required
+                  rows={3}
+                  className="w-full bg-white/5 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition resize-none"
                 />
               </div>
-
+              {error && (
+                <div className="border border-red-500/50 bg-red-900/20 rounded-lg px-4 py-3 text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-nasa-red hover:bg-red-600 text-white px-8 py-4 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-lg transition"
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <FileCode className="w-5 h-5" />
-                    Generate Notebook
-                  </>
-                )}
+                Analyze
               </button>
             </form>
-
-            {error && (
-              <div className="mt-4 border-2 border-red-500 rounded-lg p-4">
-                <p className="text-red-400">{error}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Preview / Result */}
-          <div className="glass-effect rounded-lg p-8">
-            {!notebook ? (
-              <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
-                <FileCode className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-lg">Your generated notebook will appear here</p>
-                <p className="text-sm mt-2">Fill in the form and click "Generate Notebook"</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-green-400 mb-4">
-                  <CheckCircle className="w-6 h-6" />
-                  <span className="font-semibold">Notebook generated successfully!</span>
-                </div>
-
-                <div className="bg-white/5 rounded-lg p-4 mb-4">
-                  <h4 className="text-white font-semibold mb-2">Details:</h4>
-                  <div className="space-y-2 text-sm text-gray-400">
-                    <p><span className="text-gray-500">Format:</span> {formData.format.toUpperCase()}</p>
-                    <p><span className="text-gray-500">Variable:</span> {formData.variable}</p>
-                    <p><span className="text-gray-500">Cells:</span> {(() => {
-                      try {
-                        const nb = typeof notebook.notebook === 'string' 
-                          ? JSON.parse(notebook.notebook) 
-                          : notebook.notebook
-                        return nb?.cells?.length || 0
-                      } catch {
-                        return 0
-                      }
-                    })()}</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 flex-wrap">
-                  <button
-                    onClick={downloadNotebook}
-                    className="flex-1 min-w-[150px] bg-nasa-blue hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download .ipynb
-                  </button>
-                  <button
-                    onClick={executeCode}
-                    disabled={executing}
-                    className="flex-1 min-w-[150px] bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {executing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Executing...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-5 h-5" />
-                        Run & Visualize
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setShowPreview(!showPreview)}
-                    className="flex-1 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
-                  >
-                    <Eye className="w-5 h-5" />
-                    {showPreview ? 'Hide' : 'Preview'}
-                  </button>
-                </div>
-
-                {showPreview && notebook.notebook && (
-                  <div className="mt-4">
-                    <h4 className="text-white font-semibold mb-2">Code Preview:</h4>
-                    <div className="bg-black/50 rounded-lg p-4 max-h-96 overflow-auto">
-                      <pre className="text-xs text-gray-300 whitespace-pre-wrap">
-                        {typeof notebook.notebook === 'string' 
-                          ? notebook.notebook 
-                          : JSON.stringify(notebook.notebook, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-
-                {executionResult && (
-                  <div className="mt-4 space-y-4">
-                    <div className="flex items-center gap-2 text-green-400">
-                      <ImageIcon className="w-5 h-5" />
-                      <h4 className="text-white font-semibold">Visualizations Generated!</h4>
-                    </div>
-
-                    {/* Display generated images */}
-                    {executionResult.images && executionResult.images.length > 0 && (
-                      <div className="space-y-4">
-                        {executionResult.images.map((img, idx) => (
-                          <div key={idx} className="bg-white/5 rounded-lg p-4">
-                            <p className="text-sm text-gray-400 mb-2">{img.filename}</p>
-                            <img 
-                              src={img.data} 
-                              alt={`Visualization ${idx + 1}`}
-                              className="w-full rounded-lg border border-gray-600"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Display console output if available */}
-                    {executionResult.stdout && (
-                      <div className="bg-black/50 rounded-lg p-4">
-                        <h5 className="text-white font-semibold mb-2 text-sm">Output:</h5>
-                        <pre className="text-xs text-green-400 whitespace-pre-wrap max-h-48 overflow-auto">
-                          {executionResult.stdout}
-                        </pre>
-                      </div>
-                    )}
-
-                    {/* Display errors if any */}
-                    {executionResult.stderr && executionResult.exit_code !== 0 && (
-                      <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
-                        <h5 className="text-red-400 font-semibold mb-2 text-sm">Errors:</h5>
-                        <pre className="text-xs text-red-300 whitespace-pre-wrap max-h-48 overflow-auto">
-                          {executionResult.stderr}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
+      </main>
+    )
+  }
 
-        {/* Quick Start Guide */}
-        {!notebook && (
-          <div className="mt-16 glass-effect rounded-lg p-8">
-            <h3 className="text-2xl font-bold text-white mb-4">Quick Start Guide</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white/5 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-nasa-red flex items-center justify-center text-white font-bold">
-                    1
-                  </div>
-                  <h4 className="text-white font-semibold">Search for Datasets</h4>
+  // ── STATE 2: Loading ────────────────────────────────────────────────────────
+  if (state === 'loading') {
+    return (
+      <main className="flex-1 py-16 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="glass-effect rounded-xl p-12 flex flex-col items-center text-center">
+            <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-10" />
+            <div className="space-y-3 w-full max-w-xs text-left">
+              {LOADING_STEPS.map((step, i) => (
+                <div
+                  key={step}
+                  className={`flex items-center gap-3 text-sm transition-all duration-300 ${
+                    i < stepIndex  ? 'text-green-400' :
+                    i === stepIndex ? 'text-white font-medium' :
+                                     'text-gray-600'
+                  }`}
+                >
+                  <span className="w-4 text-center flex-shrink-0">
+                    {i < stepIndex ? '✓' : i === stepIndex ? '›' : '·'}
+                  </span>
+                  {step}
                 </div>
-                <p className="text-gray-400 text-sm">
-                  Use the search bar above to find NASA datasets. Try queries like "MODIS temperature", 
-                  "ocean salinity", or "ice sheet elevation".
-                </p>
-              </div>
-              
-              <div className="bg-white/5 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-nasa-red flex items-center justify-center text-white font-bold">
-                    2
-                  </div>
-                  <h4 className="text-white font-semibold">Click Generate Workflow</h4>
-                </div>
-                <p className="text-gray-400 text-sm">
-                  When you find a dataset you like, click "Generate Workflow" and the form will 
-                  auto-populate with dataset details.
-                </p>
-              </div>
-              
-              <div className="bg-white/5 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-nasa-red flex items-center justify-center text-white font-bold">
-                    3
-                  </div>
-                  <h4 className="text-white font-semibold">Specify Analysis Details</h4>
-                </div>
-                <p className="text-gray-400 text-sm">
-                  Fill in the variable you want to analyze (e.g., "J-D" for annual temperature, 
-                  "surface_reflectance" for MODIS data).
-                </p>
-              </div>
-              
-              <div className="bg-white/5 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-nasa-red flex items-center justify-center text-white font-bold">
-                    4
-                  </div>
-                  <h4 className="text-white font-semibold">Generate & Visualize</h4>
-                </div>
-                <p className="text-gray-400 text-sm">
-                  Click "Generate Notebook" to create analysis code, then "Run & Visualize" to see 
-                  beautiful charts and insights!
-                </p>
-              </div>
+              ))}
             </div>
-            
-            <div className="mt-6 bg-nasa-blue/20 border border-nasa-blue rounded-lg p-4">
-              <p className="text-white text-sm">
-                <strong>💡 Tip:</strong> Start with the GISS Temperature dataset - 
-                it's pre-configured! Just click "Generate Notebook" with the default settings.
-              </p>
-            </div>
+            <p className="text-gray-600 text-xs mt-10">This takes 20–60 seconds.</p>
           </div>
-        )}
+        </div>
+      </main>
+    )
+  }
+
+  // ── STATE 3: Results ────────────────────────────────────────────────────────
+  const { profile, methodology_used, execution, code } = result
+  const badgeColor   = TYPE_BADGE[profile.data_type]   || 'bg-gray-600'
+  const bannerColor  = METHOD_BANNER[methodology_used]  || 'bg-gray-900/40 border-gray-500/30 text-gray-300'
+
+  return (
+    <main className="flex-1 py-12 px-4">
+      <div className="max-w-3xl mx-auto space-y-6">
+
+        {/* A) Data profile card */}
+        <div className="glass-effect rounded-xl p-6">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            What Photon found in your data
+          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl font-bold text-white">
+              {profile.row_count} rows × {profile.column_count} columns
+            </span>
+            <span className={`px-2 py-0.5 rounded text-xs font-semibold text-white ${badgeColor}`}>
+              {profile.data_type}
+            </span>
+          </div>
+          <p className="text-gray-400 text-sm mb-5">{profile.summary}</p>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-500 uppercase">
+                <th className="pb-2 pr-6 font-medium">Column</th>
+                <th className="pb-2 pr-6 font-medium">Type</th>
+                <th className="pb-2 font-medium">Nulls %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {profile.columns.map(col => (
+                <tr key={col.name} className="border-t border-white/5">
+                  <td className="py-1.5 pr-6 font-mono text-xs text-white">{col.name}</td>
+                  <td className="py-1.5 pr-6 text-gray-400">{col.dtype}</td>
+                  <td className="py-1.5 text-gray-400">{col.null_pct}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* B) Methodology banner */}
+        <div className={`rounded-lg px-4 py-2.5 border text-sm font-medium ${bannerColor}`}>
+          Applied <span className="font-bold">{methodology_used.replace('_', ' ')}</span> analysis methodology
+        </div>
+
+        {/* C) Results */}
+        <div className="glass-effect rounded-xl p-6">
+          {execution.exit_code === 0 ? (
+            <div className="space-y-4">
+              {execution.output_image && (
+                <img
+                  src={`data:image/png;base64,${execution.output_image}`}
+                  alt="Analysis chart"
+                  className="w-full rounded-lg border border-white/10"
+                />
+              )}
+              {execution.stdout && (
+                <pre className="bg-black/50 rounded-lg p-4 text-xs text-green-400 whitespace-pre-wrap overflow-auto max-h-48">
+                  {execution.stdout}
+                </pre>
+              )}
+              {!execution.output_image && !execution.stdout && (
+                <p className="text-gray-400 text-sm">Execution completed with no output.</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="border border-red-500/50 bg-red-900/20 rounded-lg p-4">
+                <p className="text-red-400 text-xs font-semibold mb-2 uppercase tracking-wide">
+                  Execution error
+                </p>
+                <pre className="text-red-300 text-xs whitespace-pre-wrap overflow-auto max-h-64">
+                  {execution.stderr}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* D) Generated code (collapsible) */}
+        <div className="glass-effect rounded-xl overflow-hidden">
+          <button
+            onClick={() => setShowCode(!showCode)}
+            className="w-full flex items-center justify-between px-6 py-4 text-sm text-gray-400 hover:text-white transition"
+          >
+            <span className="font-medium">Code generated by Photon</span>
+            <span className="text-xs">{showCode ? '▲ Hide' : '▼ Show generated code'}</span>
+          </button>
+          {showCode && (
+            <pre className="bg-black/50 px-6 pb-6 pt-2 text-xs text-gray-300 whitespace-pre-wrap overflow-auto max-h-[32rem] border-t border-white/10">
+              {code}
+            </pre>
+          )}
+        </div>
+
+        <button
+          onClick={handleReset}
+          className="w-full text-sm text-gray-500 hover:text-gray-300 py-2 transition"
+        >
+          ← Analyze another dataset
+        </button>
+
       </div>
-    </div>
+    </main>
   )
 }
 
