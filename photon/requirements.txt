@@ -1,3 +1,6 @@
+# Load .env file automatically on startup
+python-dotenv
+
 # Web server
 fastapi
 uvicorn[standard]
