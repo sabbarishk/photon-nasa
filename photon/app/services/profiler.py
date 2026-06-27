@@ -6,7 +6,7 @@ import requests
 
 
 def load_dataframe(source: str) -> pd.DataFrame:
-    """Load a CSV or JSON dataset into a DataFrame from a local path or URL."""
+    """Load a CSV, Excel, or JSON dataset into a DataFrame from a local path or URL."""
     is_url = source.startswith("http://") or source.startswith("https://")
 
     if is_url:
@@ -16,18 +16,22 @@ def load_dataframe(source: str) -> pd.DataFrame:
         except requests.RequestException as e:
             raise ValueError(f"Failed to fetch URL: {e}")
         content_type = resp.headers.get("Content-Type", "")
+        if source.endswith(".xlsx") or "spreadsheet" in content_type or "excel" in content_type:
+            return pd.read_excel(io.BytesIO(resp.content))
         if source.endswith(".json") or "json" in content_type:
             return pd.read_json(io.StringIO(resp.text))
         return pd.read_csv(io.StringIO(resp.text))
 
     if not os.path.exists(source):
         raise ValueError(f"File not found: {source}")
+    if source.endswith(".xlsx"):
+        return pd.read_excel(source)
     if source.endswith(".json"):
         return pd.read_json(source)
     if source.endswith(".csv"):
         return pd.read_csv(source)
     raise ValueError(
-        f"Unsupported file format. Expected .csv or .json, got: {source}"
+        f"Unsupported file format. Expected .csv, .xlsx, or .json, got: {source}"
     )
 
 

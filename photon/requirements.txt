@@ -10,8 +10,9 @@ pydantic
 # HTTP client (HuggingFace API, NASA CMR) and URL data loading
 requests
 
-# Data loading and profiling
+# Data loading and profiling — openpyxl enables .xlsx read support
 pandas
+openpyxl
 
 # Local embeddings -- installs torch, transformers, numpy transitively
 sentence-transformers
