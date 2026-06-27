@@ -5,6 +5,40 @@ Chronological. Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-27 — Session 9 (Phase 3 complete: portfolio-ready)
+
+**Did:**
+- Rewrote README.md as a clean, senior-engineer-style project overview:
+  one-sentence summary, pipeline story, architecture diagram, tech stack,
+  exact local setup steps, project structure table. Removed all old NASA
+  dataset catalog content and placeholder roadmap.
+- Pillar 1 is complete and interview-ready.
+
+**Current state of the pipeline (all confirmed working end-to-end):**
+- POST /workflow/generate: question + CSV URL in → profile + methodology +
+  generated code + Lambda execution result + base64 chart out
+- Browser UI: three-state flow (input → loading → results), renders profile
+  card, methodology banner, chart, stdout, and collapsible generated code
+
+**What Pillar 1 covers:**
+- Phase 0: Security — key rotation, Docker sandbox, 503 guard
+- Phase 1: Repo hygiene — node_modules scrubbed, stubs deleted, requirements rebuilt
+- Phase 2a: ChromaDB — persistent vector store, rebuild_index, query route
+- Phase 2b: Pipeline — profiler → playbook retrieval → LLM generation → workflow route
+- Phase 3: Lambda execution — sandbox confirmed, wired into execute + workflow routes
+- Phase 3 frontend: browser UI connected, renders full result set
+
+**What's NOT built (deferred until Pillar 2):**
+- Pillar 2: one-click promotion of a working analysis to a scheduled AWS
+  pipeline with monitoring and data quality checks
+- Automated end-to-end integration test suite
+- Frontend polish: "try an example" button, mobile layout improvements
+
+**Next:**
+Start Pillar 2 when ready. The decision point is in DECISIONS.md.
+
+---
+
 ## 2026-06-26 — Session 8 (Phase 3: frontend UI built and connected)
 
 **Did:**
