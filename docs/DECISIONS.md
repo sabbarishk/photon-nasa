@@ -181,138 +181,131 @@ repo.
   weaviate — packages the server never imports. Rebuilt as UTF-8, 11 packages
   the server actually uses. requirements-dev.txt created separately for
   pytest, ruff, httpx so production installs don't pull in test tooling.
-- Stale timeout parameter removed from frontend API call: frontend/src/
+- stale timeout parameter removed from frontend API call: frontend/src/
   services/api.js was still passing a timeout field to the execute endpoint
   that was removed from the backend in Phase 0.
 
 ---
 
-## ADR-006 — Data profiler as pipeline entry point
+## ADR-007 — Photon v2 direction: conversational data analyst
 
-**Date:** 2026-06-23
-**Status:** Accepted
+**Date:** 2026-06-27
+**Status:** Accepted — supersedes all prior scope discussions
 
-**Context:** The LLM needs to know what kind of data it is analyzing before
-it writes a single line of code. Without profiling, the LLM receives only a
-file path or URL — it has to guess the schema, column types, and null rates.
-That leads to generic analysis code that fails at runtime on the actual data.
+**Context:** The v1 build produced a working backend pipeline but failed
+on three key constraints: (1) no conversational layer — analysis was
+single-shot, not iterative, (2) UI was beginner-level, not executive-
+quality, (3) Pillar 2 data engineering pipeline was never built.
+Additionally, the model was run on low compute in Claude Code, producing
+noticeably lower-quality code and architectural decisions.
 
-**Decision:** Build a data profiler that runs first on every request. It
-inspects the loaded DataFrame and returns structured metadata: row count,
-column count, per-column dtype and null rate, detected data type
-(tabular / time_series / wide_format), and a plain-English summary sentence.
-This profile output serves two purposes:
-1. It is the key used to retrieve the right methodology playbook from ChromaDB
-   (the data_type field drives the metadata filter query).
-2. It is included verbatim in the LLM prompt as context about the data, so
-   the generated code references real column names and handles actual null rates.
+**Decision:** Rebuild Photon as an open-source conversational data analyst
+— the self-hostable alternative to Julius AI and Retool AI. The RAG/LLM
+pipeline is the most important part of the project. The data engineering
+pipeline is the second pillar. Both must be fully built.
 
-**Alternatives considered:**
-- Let the LLM infer schema from the filename or URL string alone — rejected.
-  A URL like "data.csv" tells the LLM nothing about columns or types.
-- Parse schema inside the Docker sandbox during execution — rejected.
-  By then we have already written the analysis code and committed to an
-  approach. If the approach is wrong for the data type, the code fails.
+**What changes from v1:**
+- Single-shot analysis → multi-turn conversation with memory
+- Single chart output → full KPI dashboard (cards + charts + narrative)
+- Basic form UI → executive-level split-panel workspace
+- No landing page → proper landing page with demo mode
+- NASA branding → completely removed
+- No Excel support → CSV + Excel + URL
+- Pillar 2 not built → S3 + Step Functions + CloudWatch fully built
 
-**Detection logic (three categories):**
-- time_series: has at least one datetime column AND at least one numeric column
-- wide_format: more than 20 columns AND fewer than 100 rows
-- tabular: everything else (the default)
-These three categories cover the vast majority of structured data a practitioner
-brings to analysis. More categories can be added when the profiler is extended.
+**What stays from v1:**
+- ChromaDB RAG layer (working, keep)
+- Data profiler (working, keep)
+- AWS Lambda execution (working, keep)
+- Anthropic API integration (working, keep)
+- FastAPI backend structure (keep)
+- All security work (keep)
+- All documentation/ADRs (keep)
 
----
+**Model requirement:** Claude Sonnet 4.6 HIGH in Claude Code every session.
+The v1 quality issues were directly caused by running on low compute.
 
-## ADR-007 — Methodology playbooks in ChromaDB, retrieved by metadata filter
+**Why self-hostable open source:**
+Julius AI, Retool AI, ChatCSV are all closed, paid, enterprise tools.
+There is no production-quality open-source alternative. "Self-hostable
+conversational data analyst" is actively searched for on GitHub. This
+is the gap the project fills and the reason it will earn stars.
 
-**Date:** 2026-06-23
-**Status:** Accepted
+**Data sources — v1 scope:**
+CSV upload, Excel upload (.xlsx), public URL. All other connectors
+(databases, APIs, cloud storage) deferred to v2. Scope discipline over
+feature breadth.
 
-**Context:** The RAG layer must retrieve methodology-appropriate analysis
-guidance before the LLM writes code. The question is what form that knowledge
-takes and how retrieval works.
-
-**Decision:** Store methodology playbooks as markdown documents in ChromaDB,
-tagged with a `data_type` metadata field. Retrieval uses `collection.get()`
-with a `where={"data_type": data_type}` filter — not a similarity search.
-
-**Why metadata filter, not similarity search:**
-The profiler gives us an exact data type classification. We don't need to ask
-"which playbook is most semantically similar to this query?" when we already
-know the answer is "the time_series playbook" because the profiler said the
-data is time_series. Similarity search adds complexity without benefit when
-the classification is deterministic.
-
-**Why markdown files, not Python code or inline prompts:**
-Markdown is human-readable, version-controllable, and editable without
-touching application code. A data scientist can improve a playbook by editing
-a text file. Inline prompts live in code and require a code change to update.
-
-**Why a separate ChromaDB collection (photon_playbooks), not the dataset collection:**
-Mixing methodology documents with dataset vectors would contaminate both:
-similarity searches over datasets would return playbooks as results, and
-playbook retrieval would need to filter out all 34 dataset entries every time.
-Two collections, two concerns, no interference.
-
-**Playbooks cover the same three categories the profiler detects:**
-tabular.md, time_series.md, wide_format.md. Any data type the profiler can
-classify has a corresponding playbook. Adding a new data type means adding both
-a detection rule in profiler.py and a new playbook file.
+**Demo data:**
+Synthetic manufacturing dataset — defect rates, redo analysis by
+department, equipment handler performance, client impact. Chosen because
+project owner is a manufacturing data analyst and can make the demo
+feel genuinely domain-aware rather than generic.
 
 ---
 
-## ADR-008 — AWS Lambda replaces Docker as the execution sandbox
+## ADR-008 — Conversational memory architecture
 
-**Date:** 2026-06-23
-**Status:** Accepted — supersedes Docker sandbox from ADR-001 for execution layer
+**Date:** 2026-06-27
+**Status:** Accepted
 
-**Context:** Docker Desktop is not installed on the development machine and
-requires a separate install. More importantly, a Lambda-based execution layer
-serves a dual purpose: it acts as the sandboxed executor for Pillar 1 (running
-analysis code safely) AND it is the natural foundation for Pillar 2 (promoting
-a working analysis to a scheduled AWS pipeline). Building the Lambda layer now
-means Phase 3 (connect workflow to execute) and Pillar 2 share the same
-infrastructure instead of requiring a Docker → Lambda migration later.
+**Context:** The most important missing piece in v1 was conversation
+memory. Without it, each analysis turn is isolated — the LLM doesn't
+know what was discussed before, can't build on previous analysis, and
+can't refine or extend the dashboard iteratively.
 
-The core non-negotiable from ADR-001 is preserved: user code never runs
-in-process. It runs in an isolated, resource-limited, network-controlled
-environment managed by AWS. Lambda enforces this at the infrastructure level —
-it is strictly more isolated than a local Docker container.
+**Decision:** Maintain conversation history as a list of message dicts
+on the frontend, passed with every API call. Each turn includes:
+- Full message history (user + assistant turns)
+- Current data profile (computed once on first upload, cached)
+- Previous analysis code (so LLM can extend rather than rewrite)
+- User's new request
 
-**Decision:** Replace the local Docker sandbox with an AWS Lambda function
-(photon-code-executor, us-east-1) as the code execution backend. The execute
-route calls Lambda instead of spinning up a local container.
+**Why client-side history vs server-side sessions:**
+For a self-hostable open-source tool, server-side session storage adds
+operational complexity (Redis or database required). Client-side history
+passed per request is stateless, trivially scalable, and easier for
+anyone deploying their own instance. The conversation history fits
+comfortably in the LLM context window for typical analysis sessions
+(10-20 turns).
 
-**What changes:**
-- /execute sends code to Lambda via boto3 instead of subprocess + docker run
-- Hard limits move from Docker flags to Lambda configuration:
-  memory (256MB), timeout (15s), no VPC = no outbound internet
-- Lambda Layer provides pandas/numpy/matplotlib to the function runtime
+**Context window management:**
+If conversation history grows too long (>10 turns), summarize older
+turns into a compressed context block rather than truncating. This
+preserves analytical continuity without blowing the context limit.
 
-**What does NOT change:**
-- User code never runs in-process (the non-negotiable)
-- The API contract for /execute stays the same — callers don't know or care
-  whether execution is local Docker or remote Lambda
-- The 503 guard stays: if Lambda is unreachable, return 503
+---
 
-**Why Lambda over alternatives:**
-- Fargate: containers on demand, but cold start is 10–30s vs Lambda's ~1s.
-  Also requires a VPC and load balancer to expose. Much more operational
-  overhead for the same isolation guarantee.
-- Keep Docker local: Docker is not installed, and a Lambda function already
-  exists. The path of least friction is also the architecturally better choice.
-- EC2 instance running Docker: persistent cost, not serverless, more to manage.
+## ADR-009 — Dashboard output format
 
-**Lambda Layer — why it is needed:**
-Lambda's base Python 3.11 runtime includes only the standard library. pandas,
-numpy, and matplotlib are not included. A Lambda Layer is a zip file with the
-structure python/[packages] that Lambda attaches to the function's filesystem
-before execution. The layer must contain Linux (manylinux2014_x86_64) binaries
-because Lambda runs on Amazon Linux 2, not Windows or macOS.
+**Date:** 2026-06-27
+**Status:** Accepted
 
-**Interview answer:**
-"I replaced the local Docker sandbox with AWS Lambda because Lambda gives the
-same isolation guarantee — user code never runs in-process — while also
-serving as the foundation for Pillar 2's scheduled pipeline promotion. The
-execution infrastructure scales automatically and I don't manage a Docker
-daemon in production."
+**Context:** v1 returned a single matplotlib chart and stdout. This is
+not a dashboard — it's a script output. For the project to be genuinely
+useful to data analysts and impressive to hiring managers, the output
+must look like a real analytical product.
+
+**Decision:** Every analysis turn produces a structured response:
+{
+  "kpi_cards": [{"label": str, "value": str, "delta": str, "trend": str}],
+  "charts": [base64 PNG strings, 2-4 panels],
+  "insights": str,  // AI-written narrative, 3-5 sentences
+  "anomalies": [{"column": str, "finding": str}],
+  "code": str,      // visible to user, collapsible
+  "follow_up_suggestions": [str, str, str]  // suggested next questions
+}
+
+**Two LLM passes per turn:**
+Pass 1: Generate analysis code (existing llm.py) — grounded in profile,
+methodology, conversation history, user question.
+Pass 2: Generate insight narrative — takes execution results (stdout,
+chart descriptions) and writes a plain-English explanation of what the
+data shows. This is the "AI analyst voice" that makes the output feel
+like a real product and not a script runner.
+
+**Why two passes:**
+Separating code generation from insight generation produces better
+results for both. The code generation LLM focuses on correctness and
+completeness. The insight generation LLM focuses on communication and
+business relevance. Combining them produces mediocre results on both.
