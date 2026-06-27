@@ -5,6 +5,57 @@ Chronological. Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-26 — Session 7 (Phase 3: end-to-end pipeline confirmed working)
+
+**Did:**
+- Confirmed full end-to-end pipeline works: question + CSV URL in, executed
+  result + chart out, zero errors
+- Test: airtravel.csv (12 rows × 4 cols) via public URL
+  - Profiler: detected tabular, 4 columns, 0 nulls — correct
+  - Playbook retrieval: tabular methodology selected — correct
+  - LLM: generated 4-panel matplotlib analysis (trend line, bar chart,
+    histogram, summary stats panel)
+  - Lambda execution: exit_code 0, no stderr, chart returned as base64 PNG
+- Fixed two startup bugs found during testing:
+  - Added python-dotenv to requirements.txt; added load_dotenv() at top of
+    main.py so .env is loaded automatically on server start
+  - Fixed .env.example: ANTHROPIC_KEY → ANTHROPIC_API_KEY (must match
+    what llm.py reads via os.environ.get)
+  - Added PHOTON_SKIP_AUTH=1 to .env.example with production warning
+- Added "Running locally" section to README with correct uvicorn command
+  (uvicorn app.main:app --reload --app-dir photon from repo root)
+
+**Key things to know for interviews:**
+- The correct uvicorn invocation is `uvicorn app.main:app --reload
+  --app-dir photon` from the repo root. --app-dir adds photon/ to
+  sys.path so `from app.X import ...` resolves inside the package.
+- load_dotenv() must be the very first call in main.py, before any other
+  imports, so env vars are set before FastAPI/services read them at import time.
+- Lambda can only read data from URLs or data embedded in the code —
+  local file paths on the developer's machine don't exist inside the
+  AWS Lambda execution environment.
+
+**What's done so far:**
+- Phase 0: Security — key rotation, Docker sandbox replacing exec(), 503 guard
+- Phase 1: Repo hygiene — node_modules scrubbed, empty stubs deleted, requirements rebuilt
+- Phase 2a: ChromaDB — persistent vector store, rebuild_index script, query route
+- Phase 2b: Full pipeline — profiler → playbook retrieval → LLM generation → workflow route
+- Phase 3: Lambda execution — sandbox confirmed, wired into execute + workflow routes
+- Phase 3 verified: end-to-end test passed, exit_code 0, chart returned
+
+**What's NOT built yet:**
+- Frontend data upload UI: replace hardcoded NASA dataset selector with
+  "bring your own data" — file upload or URL input
+- Automated end-to-end integration test suite
+- Pillar 2 (AWS pipeline promotion): not started
+
+**Next session:**
+Build the frontend upload UI so a user can drop a CSV URL and ask a
+question from the browser, triggering the full pipeline and seeing the
+executed result and chart without touching the terminal.
+
+---
+
 ## 2026-06-23 — Session 6 (Phase 3: Lambda execution wired into pipeline)
 
 **Did:**
