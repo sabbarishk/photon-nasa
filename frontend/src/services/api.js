@@ -57,4 +57,17 @@ export const executeNotebook = async (code) => {
   }
 }
 
+export async function generateAnalysis(question, source) {
+  const response = await fetch('http://localhost:8000/workflow/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, source }),
+  })
+  if (!response.ok) {
+    const err = await response.json()
+    throw new Error(err.detail || 'Analysis failed')
+  }
+  return response.json()
+}
+
 export default api
