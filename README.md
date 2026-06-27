@@ -76,6 +76,40 @@ npm run dev
 
 ---
 
+## Running locally
+
+```bash
+# 1. Copy the example env file and fill in your keys
+cp .env.example .env
+# Edit .env: add ANTHROPIC_API_KEY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+
+# 2. Create a virtual environment and install dependencies
+cd photon
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS / Linux
+pip install -r requirements.txt
+
+# 3. Start the API server
+cd ..
+uvicorn app.main:app --reload --app-dir photon
+```
+
+The API is now at **http://localhost:8000**.
+
+To test the full pipeline (question in, real executed result out):
+
+```bash
+curl -s -X POST http://localhost:8000/workflow/generate \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the trend over time?",
+       "source": "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/tips.csv"}'
+```
+
+> **Note:** `PHOTON_SKIP_AUTH=1` in your `.env` disables API key authentication for local development. Remove it before deploying to production.
+
+---
+
 ## 🎯 Quick Start
 
 ### 1. Search for Datasets
