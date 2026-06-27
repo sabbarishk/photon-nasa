@@ -5,6 +5,79 @@ Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-27 — Session 9: Phase 1 conversational backend complete
+
+**Did:**
+- Added conversation_history (list) and session_id (str) to WorkflowRequest
+- Added PHOTON_SUMMARY: marker parsing — generated code prints a JSON block
+  that gets parsed into kpi_cards and anomalies without crashing on failure
+- Updated generate_analysis_code(): conversation history injected as first
+  prompt section (last 6 turns, 2 lines each), dashboard prompt replaces
+  single-chart prompt (2-4 subplots, dark_background, #6366f1 accent,
+  plt.savefig with facecolor=#09090b)
+- Added generate_insight_narrative(): second LLM pass, max_tokens=300,
+  returns "" on any failure — never crashes main pipeline
+- Added generate_follow_up_suggestions(): third LLM call, returns list of 3
+  strings, has safe defaults per data_type on failure
+- Wired full pipeline in workflow.py: code → execute → parse → narrative →
+  suggestions → structured response with all 8 fields
+- Added Excel (.xlsx) support to load_dataframe(): URL and local path,
+  using pd.read_excel(io.BytesIO(resp.content)) for URLs
+- Added openpyxl to requirements.txt
+- Fixed Lambda URL loading: changed prompt from requests.get() to
+  pd.read_csv(url) directly — requests not in Lambda data science layer
+- Increased max_tokens for code generation: 2500 → 4000 (prevents truncation
+  on larger dashboard code with 4 subplots + PHOTON_SUMMARY block)
+- Added prompt safety rules: no TwoSlopeNorm/DivergingNorm, no wide heatmaps,
+  wrap zero-division risks, use proven chart types only
+
+**Test 1 results (no history, airtravel.csv):**
+- kpi_cards: 5 items (Overall Avg, Peak, Lowest, Growth %, Peak Season Month)
+- insight_narrative: 5 sentences, specific numbers, business-ready language
+- follow_up_suggestions: 3 specific questions using column names
+- execution.exit_code: 0
+- execution.output_image: YES (328,864 char base64 PNG)
+- anomalies: [] (correctly empty — data is clean)
+
+**Test 2 results (with history, follow-up question):**
+- Narrative correctly references prior context (25% growth, peak month)
+- Suggestions build on prior analysis (FEB vs AUG comparison, growth drivers)
+- kpi_cards: 5 items focused on monthly comparison (new question's angle)
+- execution.exit_code: 0, output_image: YES (398,548 char base64 PNG)
+
+**Key things to know for interviews:**
+- The PHOTON_SUMMARY: marker is a sentinel pattern — the LLM is instructed to
+  print it as the last line of stdout. We split on the marker and parse JSON.
+  If anything fails (LLM didn't print it, JSON is malformed), we return [].
+  Never crash the pipeline over a parse failure.
+- Two LLM passes per turn: pass 1 generates code (max 4000 tokens), pass 2
+  generates insight narrative (max 300 tokens). Separated so each LLM can
+  focus — code generation is about correctness, narrative is about communication.
+- Client-side conversation history: passed per request, stateless backend.
+  No Redis, no sessions, no server-side state. Self-hostable by design.
+- Lambda doesn't have requests installed — pandas reads URLs directly via
+  urllib internally. The prompt explicitly says "do NOT use requests".
+
+**What's done in v2 so far:**
+- [x] Conversation memory: message history passed per turn
+- [x] Multi-panel dashboard code generation (2-4 charts)
+- [x] KPI card extraction from PHOTON_SUMMARY marker
+- [x] Second LLM pass: AI insight narrative generation
+- [x] Follow-up suggestion generation (third LLM call)
+- [x] Excel file support (.xlsx via openpyxl)
+- [x] Structured response format: all 8 fields
+- [ ] Anomaly detection (currently empty — generated code rarely finds them)
+- [ ] Executive UI (Phase 2)
+- [ ] Demo mode and landing page (Phase 2)
+- [ ] Pillar 2 (Phase 3)
+
+**Next session:**
+Phase 2 — Executive UI. Read docs/DESIGN.md first.
+Build: split-panel workspace, KPI card components, multi-chart display,
+insight narrative panel, follow-up suggestion chips, landing page.
+
+---
+
 ## 2026-06-27 — Direction reset: v2 planning session
 
 **What changed:**
