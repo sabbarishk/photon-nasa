@@ -27,7 +27,7 @@ def generate_analysis_code(
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=2500,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
     )
     raw = message.content[0].text
