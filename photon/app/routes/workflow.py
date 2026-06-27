@@ -5,7 +5,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.lambda_executor import execute_via_lambda
-from app.services.llm import generate_analysis_code
+from app.services.llm import (
+    generate_analysis_code,
+    generate_follow_up_suggestions,
+    generate_insight_narrative,
+)
 from app.services.profiler import load_dataframe, profile
 from app.services.vector_db import search_playbooks
 
@@ -48,9 +52,15 @@ def generate_workflow(req: WorkflowRequest):
     # Step 2: retrieve methodology playbook.
     playbook = search_playbooks(data_profile["data_type"])
 
-    # Step 3: generate analysis code.
+    # Step 3: generate dashboard code grounded in profile + playbook + history.
     try:
-        code = generate_analysis_code(req.question, data_profile, playbook, req.source)
+        code = generate_analysis_code(
+            req.question,
+            data_profile,
+            playbook,
+            req.source,
+            req.conversation_history,
+        )
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
@@ -82,6 +92,24 @@ def generate_workflow(req: WorkflowRequest):
     if execution_result["exit_code"] == 0:
         kpi_cards, anomalies = _parse_summary(execution_result["stdout"])
 
+    # Step 6: generate insight narrative (second LLM pass, only on success).
+    insight_narrative = ""
+    if execution_result["exit_code"] == 0:
+        insight_narrative = generate_insight_narrative(
+            req.question,
+            data_profile,
+            kpi_cards,
+            anomalies,
+            req.conversation_history,
+        )
+
+    # Step 7: generate follow-up suggestions (third LLM call).
+    follow_up_suggestions = generate_follow_up_suggestions(
+        req.question,
+        data_profile,
+        kpi_cards,
+    )
+
     return {
         "code": code,
         "profile": data_profile,
@@ -89,6 +117,6 @@ def generate_workflow(req: WorkflowRequest):
         "execution": execution_result,
         "kpi_cards": kpi_cards,
         "anomalies": anomalies,
-        "insight_narrative": "",
-        "follow_up_suggestions": [],
+        "insight_narrative": insight_narrative,
+        "follow_up_suggestions": follow_up_suggestions,
     }
