@@ -264,7 +264,14 @@ Write Python code that does ALL of the following:
    - Only include genuinely detected anomalies (outliers beyond 2 std devs, unexpected nulls, impossible values)
    - If none detected, use empty list: []
 
-5. Return only the Python code. No markdown. No triple backticks. No explanation."""
+5. Safety rules for robust code:
+   - Do NOT use TwoSlopeNorm, DivergingNorm, or any normalization that requires vmin < vcenter < vmax
+   - Do NOT use seaborn heatmap with annot on wide data (more than 10 columns)
+   - Wrap any calculation that could divide by zero with a check or try/except
+   - Use simple, proven chart types: bar, line, scatter, histogram, boxplot
+   - Every subplot must work even if some values are equal or zero
+
+6. Return only the Python code. No markdown. No triple backticks. No explanation."""
 
 
 def _strip_fences(text: str) -> str:
