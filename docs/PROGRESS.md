@@ -5,6 +5,64 @@ Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-28 — Session 13: Phase 4 — demo data and README
+
+**Did:**
+
+**PART 1 — Synthetic manufacturing demo dataset:**
+- photon/scripts/generate_demo_data.py: numpy seed=42, 500 rows,
+  Jan-Dec 2024 weekdays, all 14 columns specified
+- Realistic patterns baked in:
+  - Q3 (Jul-Sep): Poisson(0.45) extra redo per row (~30% lift)
+  - EQ-007, EQ-011: Poisson(3) extra defects each
+  - OP-003, OP-018: Poisson(2) extra redos
+  - Painting dept: Poisson(1.5) extra scrap
+  - Delta Industries, Titan Works: Poisson(1.5) extra defects
+  - Night shift: Binomial(3, 0.4) ≈ 1.2 extra defects
+  - inspection_result correlated with defect_count:
+    low (<3) → 85% Pass, mid (3-7) → 40% Pass, high (≥8) → 60% Fail
+- photon/data/demo/manufacturing_quality.csv: 500 rows, verified
+
+**PART 2 — Demo wired into backend and frontend:**
+- photon/app/routes/demo.py: GET /demo/manufacturing returns CSV via
+  FileResponse (media_type="text/csv") — profiler's load_dataframe()
+  handles it as a URL automatically
+- Registered in main.py: app.include_router(demo.router, prefix="/demo")
+- Workspace.jsx: DEMO_SOURCE constant with path + label
+  - loadDemo() function sets currentSource to DEMO_SOURCE
+  - useLocation() checks location.state?.loadDemo on mount → auto-loads
+  - DataSourceSection: new separator ("or try the demo") + demo button
+    between drag-drop zone and URL input
+  - onLoadDemo prop passed through
+- Landing.jsx: "Try Demo" navbar button now passes
+  navigate('/analyze', { state: { loadDemo: true } })
+  so clicking it lands on /analyze with demo pre-loaded
+
+**PART 3 — README rewrite:**
+- Full professional README: why Photon, ASCII architecture diagram,
+  tech stack table, step-by-step local setup (Python, npm, .env,
+  Lambda deploy, ChromaDB playbooks, both servers), demo instructions
+  with example questions, project structure, MIT license
+
+**Build verification:** Vite build ✓ 1522 modules, zero errors
+
+**What's done in v2 so far:**
+- [x] All Phase 1 backend (conversation history, PHOTON_SUMMARY, LLM passes)
+- [x] All Phase 2 UI (split panel, KPI cards, chart, narrative, chips)
+- [x] Phase 3 polish: spacing, turn history, localStorage, typing dots,
+      scroll indicator, per-turn code state
+- [x] Re-run button, backend ping, markdown stripping, profile null warning
+- [x] Synthetic manufacturing demo dataset (500 rows, seed=42)
+- [x] GET /demo/manufacturing backend endpoint
+- [x] One-click demo loading from UI and from landing page "Try Demo"
+- [x] Professional README
+
+**Next session:**
+Pillar 2: S3 storage, Step Functions orchestration, CloudWatch monitoring,
+"Promote to pipeline" feature, pipeline dashboard.
+
+---
+
 ## 2026-06-28 — Session 12: Three targeted fixes
 
 **Did:**
