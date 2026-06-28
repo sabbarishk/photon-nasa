@@ -820,7 +820,7 @@ function loadSession() {
 }
 
 const DEMO_SOURCE = {
-  path: 'http://localhost:8000/demo/manufacturing',
+  path: 'https://raw.githubusercontent.com/sabbarishk/photon-nasa/main/photon/data/demo/manufacturing_quality.csv',
   label: 'Manufacturing Quality Dataset',
 }
 
