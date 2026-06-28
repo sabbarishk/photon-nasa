@@ -273,7 +273,7 @@ function MessageBubble({ role, content, suggestions, onSuggestionClick }) {
           background: 'var(--accent-muted)',
           border: '1px solid var(--accent-border)',
           borderRadius: '12px 12px 2px 12px',
-          padding: '10px 14px',
+          padding: '12px 16px',
           maxWidth: '75%',
           fontSize: 14,
           color: 'var(--text-primary)',
@@ -355,7 +355,7 @@ function EmptyDashboard() {
 
 function LoadingDashboard({ currentStep }) {
   return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 32 }}>
+    <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 32 }}>
       <StepProgress steps={ANALYSIS_STEPS} currentStep={currentStep} />
       <div>
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 12 }}>KEY METRICS</p>
@@ -381,7 +381,7 @@ function AnalysisResults({ result, methodologyUsed }) {
   const [codeOpen, setCodeOpen] = useState(false)
 
   return (
-    <div className="fade-in" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div className="fade-in" style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 32 }}>
 
       {/* KPI Cards */}
       {result.kpi_cards && result.kpi_cards.length > 0 && (
@@ -613,7 +613,7 @@ export default function Workspace() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left panel */}
         <div style={{
-          width: 380,
+          width: 420,
           flexShrink: 0,
           background: 'var(--bg-surface)',
           borderRight: '1px solid var(--border-subtle)',
@@ -623,8 +623,8 @@ export default function Workspace() {
           overflow: 'hidden',
         }}>
           {/* Data source */}
-          <div style={{ padding: 16, borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-            <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 10 }}>DATA SOURCE</p>
+          <div style={{ padding: '16px 16px 20px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+            <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 12 }}>DATA SOURCE</p>
             <DataSourceSection
               currentSource={currentSource}
               onSourceSet={(path, label) => setCurrentSource({ path, label })}
@@ -638,10 +638,10 @@ export default function Workspace() {
             style={{
               flex: 1,
               overflowY: 'auto',
-              padding: 16,
+              padding: 20,
               display: 'flex',
               flexDirection: 'column',
-              gap: 12,
+              gap: 16,
             }}
           >
             {messages.length === 0 ? (
@@ -678,9 +678,9 @@ export default function Workspace() {
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-default)',
                 color: 'var(--text-primary)',
-                padding: '10px 12px',
+                padding: '12px 14px',
                 borderRadius: 6,
-                fontSize: 13,
+                fontSize: 14,
                 resize: 'none',
                 outline: 'none',
                 fontFamily: 'inherit',

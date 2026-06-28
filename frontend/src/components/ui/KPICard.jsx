@@ -14,7 +14,7 @@ export default function KPICard({ label, value, delta, index = 0 }) {
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 8,
-        padding: 20,
+        padding: 24,
         minWidth: 140,
         flex: '0 0 auto',
         animationDelay: `${index * 50}ms`,
@@ -44,7 +44,7 @@ export default function KPICard({ label, value, delta, index = 0 }) {
         {label}
       </p>
       <p style={{
-        fontSize: 28,
+        fontSize: 30,
         fontWeight: 700,
         color: 'var(--text-primary)',
         lineHeight: 1.1,
