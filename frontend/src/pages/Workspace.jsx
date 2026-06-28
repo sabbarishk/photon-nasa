@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Upload, BarChart2, Lightbulb, AlertTriangle, Code2,
   MessageCircle, Github, CheckCircle2, Loader2, X,
-  FileText, Link
+  FileText, Link, ChevronDown
 } from 'lucide-react'
 import KPICard from '../components/ui/KPICard'
 import Badge from '../components/ui/Badge'
@@ -25,6 +25,9 @@ const ANALYSIS_STEPS = [
   'Executing on AWS Lambda...',
   'Building your dashboard...',
 ]
+
+const SESSION_KEY = 'photon_session'
+const MAX_SAVED_TURNS = 10
 
 function WorkspaceNavbar() {
   const navigate = useNavigate()
@@ -265,6 +268,36 @@ function DataSourceSection({ currentSource, onSourceSet, onClear }) {
   )
 }
 
+function TypingIndicator() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+      <span style={{ fontSize: 10, color: 'var(--text-tertiary)', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 500 }}>Photon</span>
+      <div style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '12px 12px 12px 2px',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+      }}>
+        {[0, 1, 2].map(i => (
+          <div
+            key={i}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: 'var(--text-tertiary)',
+              animation: `typingDot 1.2s ${i * 0.2}s ease-in-out infinite`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function MessageBubble({ role, content, suggestions, onSuggestionClick }) {
   if (role === 'user') {
     return (
@@ -361,9 +394,9 @@ function LoadingDashboard({ currentStep }) {
         <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 12 }}>KEY METRICS</p>
         <div style={{ display: 'flex', gap: 12 }}>
           {[1, 2, 3].map(i => (
-            <div key={i} style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 20 }}>
+            <div key={i} style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 24 }}>
               <Skeleton height={10} width="60%" style={{ marginBottom: 12 }} />
-              <Skeleton height={28} width="80%" style={{ marginBottom: 8 }} />
+              <Skeleton height={30} width="80%" style={{ marginBottom: 8 }} />
               <Skeleton height={10} width="40%" />
             </div>
           ))}
@@ -377,8 +410,81 @@ function LoadingDashboard({ currentStep }) {
   )
 }
 
-function AnalysisResults({ result, methodologyUsed }) {
-  const [codeOpen, setCodeOpen] = useState(false)
+function TurnHistoryBar({ turns, activeTurnIndex, onSelect }) {
+  if (turns.length <= 1) return null
+  return (
+    <div style={{
+      background: 'var(--bg-surface)',
+      borderBottom: '1px solid var(--border-subtle)',
+      padding: '12px 32px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      overflowX: 'auto',
+      flexShrink: 0,
+    }}>
+      <span style={{
+        fontSize: 11,
+        fontWeight: 500,
+        letterSpacing: '0.05em',
+        textTransform: 'uppercase',
+        color: 'var(--text-tertiary)',
+        marginRight: 4,
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}>
+        Analysis History
+      </span>
+      {turns.map((turn, i) => {
+        const isActive = i === activeTurnIndex
+        return (
+          <button
+            key={turn.id}
+            onClick={() => onSelect(i)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 2,
+              padding: '6px 12px',
+              borderRadius: 6,
+              border: `1px solid ${isActive ? 'var(--accent-primary)' : 'var(--border-default)'}`,
+              background: isActive ? 'var(--accent-muted)' : 'var(--bg-elevated)',
+              color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+              flexShrink: 0,
+              textAlign: 'left',
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => {
+              if (!isActive) {
+                e.currentTarget.style.borderColor = 'var(--border-strong)'
+                e.currentTarget.style.color = 'var(--text-primary)'
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isActive) {
+                e.currentTarget.style.borderColor = 'var(--border-default)'
+                e.currentTarget.style.color = 'var(--text-secondary)'
+              }
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              Q{i + 1}: {turn.question.length > 30 ? turn.question.slice(0, 30) + '…' : turn.question}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+              {turn.timestamp}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function AnalysisResults({ result, methodologyUsed, codeVisible, onToggleCode }) {
+  const hasImage = Boolean(result.execution?.output_image)
 
   return (
     <div className="fade-in" style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -396,7 +502,7 @@ function AnalysisResults({ result, methodologyUsed }) {
       )}
 
       {/* Chart */}
-      {result.execution?.output_image && (
+      {hasImage ? (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>ANALYSIS</p>
@@ -405,13 +511,23 @@ function AnalysisResults({ result, methodologyUsed }) {
           <img
             src={`data:image/png;base64,${result.execution.output_image}`}
             alt="Analysis dashboard"
-            style={{
-              width: '100%',
-              borderRadius: 8,
-              border: '1px solid var(--border-subtle)',
-              display: 'block',
-            }}
+            style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border-subtle)', display: 'block' }}
           />
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 120,
+          borderRadius: 8,
+          border: '1px dashed var(--border-default)',
+          color: 'var(--text-tertiary)',
+          fontSize: 13,
+          gap: 8,
+        }}>
+          <BarChart2 size={16} />
+          Re-run analysis to see chart
         </div>
       )}
 
@@ -446,12 +562,7 @@ function AnalysisResults({ result, methodologyUsed }) {
       {result.insight_narrative && (
         <div>
           <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 12 }}>ANALYSIS SUMMARY</p>
-          <div style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 8,
-            padding: 20,
-          }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Lightbulb size={16} color="var(--accent-primary)" />
               <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent-primary)' }}>AI Insight</span>
@@ -463,11 +574,11 @@ function AnalysisResults({ result, methodologyUsed }) {
         </div>
       )}
 
-      {/* Generated Code (collapsible) */}
+      {/* Generated Code (collapsible, per-turn visibility) */}
       {result.code && (
         <div>
           <button
-            onClick={() => setCodeOpen(o => !o)}
+            onClick={onToggleCode}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -483,14 +594,15 @@ function AnalysisResults({ result, methodologyUsed }) {
               cursor: 'pointer',
               transition: 'all 150ms ease',
               justifyContent: 'center',
+              fontFamily: 'inherit',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-overlay)'; e.currentTarget.style.borderColor = 'var(--border-strong)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
           >
             <Code2 size={14} />
-            {codeOpen ? 'Hide generated code' : 'Show generated code'}
+            {codeVisible ? 'Hide generated code' : 'Show generated code'}
           </button>
-          {codeOpen && (
+          {codeVisible && (
             <div style={{ marginTop: 8 }}>
               <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 8 }}>Code generated and executed by Photon</p>
               <pre style={{
@@ -516,22 +628,119 @@ function AnalysisResults({ result, methodologyUsed }) {
   )
 }
 
+function RestoreBanner({ savedAt, onRestore, onDismiss }) {
+  return (
+    <div style={{
+      margin: '0 0 0 0',
+      padding: '10px 16px',
+      background: 'var(--accent-muted)',
+      border: '1px solid var(--accent-border)',
+      borderRadius: 6,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      flexShrink: 0,
+    }}>
+      <span style={{ fontSize: 12, color: '#a5b4fc', flex: 1 }}>
+        ↩ Restore session from {savedAt}?
+      </span>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button
+          onClick={onRestore}
+          style={{
+            background: 'var(--accent-primary)',
+            color: 'white',
+            border: 'none',
+            padding: '4px 10px',
+            borderRadius: 4,
+            fontSize: 11,
+            fontWeight: 500,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          Restore
+        </button>
+        <button
+          onClick={onDismiss}
+          style={{
+            background: 'transparent',
+            color: '#a5b4fc',
+            border: '1px solid var(--accent-border)',
+            padding: '4px 10px',
+            borderRadius: 4,
+            fontSize: 11,
+            fontWeight: 500,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          Start fresh
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function saveSession(source, turns) {
+  try {
+    const toSave = turns.slice(-MAX_SAVED_TURNS).map(t => ({
+      ...t,
+      result: {
+        ...t.result,
+        execution: {
+          ...t.result.execution,
+          output_image: null, // too large for localStorage
+        },
+      },
+    }))
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      sessionId: crypto.randomUUID?.() || String(Date.now()),
+      source,
+      createdAt: new Date().toISOString(),
+      turns: toSave,
+    }))
+  } catch {}
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
 export default function Workspace() {
   const [currentSource, setCurrentSource] = useState(null)
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
-  const [latestResult, setLatestResult] = useState(null)
+  const [turns, setTurns] = useState([])
+  const [activeTurnIndex, setActiveTurnIndex] = useState(null)
+  const [codeVisible, setCodeVisible] = useState({})
   const [error, setError] = useState('')
+  const [savedSession, setSavedSession] = useState(null)
   const threadRef = useRef(null)
   const stepTimerRef = useRef(null)
+
+  // On mount, check for saved session
+  useEffect(() => {
+    const session = loadSession()
+    if (session && session.turns?.length > 0) {
+      setSavedSession(session)
+    }
+  }, [])
 
   useEffect(() => {
     if (threadRef.current) {
       threadRef.current.scrollTop = threadRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, loading])
 
   const startStepTimer = () => {
     setLoadingStep(0)
@@ -547,6 +756,28 @@ export default function Workspace() {
       clearInterval(stepTimerRef.current)
       stepTimerRef.current = null
     }
+  }
+
+  const handleRestoreSession = () => {
+    if (!savedSession) return
+    const restoredMessages = savedSession.turns.flatMap(t => [
+      { role: 'user', content: t.question },
+      {
+        role: 'assistant',
+        content: t.result.insight_narrative || 'Analysis complete.',
+        suggestions: t.result.follow_up_suggestions || [],
+      },
+    ])
+    setMessages(restoredMessages)
+    setTurns(savedSession.turns)
+    setActiveTurnIndex(savedSession.turns.length - 1)
+    setCurrentSource({ path: savedSession.source, label: savedSession.source })
+    setSavedSession(null)
+  }
+
+  const handleDismissSession = () => {
+    localStorage.removeItem(SESSION_KEY)
+    setSavedSession(null)
   }
 
   const handleSubmit = async (question) => {
@@ -572,7 +803,19 @@ export default function Workspace() {
       const result = await analyzeData(q, currentSource.path, apiHistory)
       stopStepTimer()
       setLoadingStep(ANALYSIS_STEPS.length - 1)
-      setLatestResult(result)
+
+      const newTurn = {
+        id: Date.now(),
+        question: q,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        result,
+      }
+      const newTurns = [...turns, newTurn]
+      setTurns(newTurns)
+      setActiveTurnIndex(newTurns.length - 1)
+
+      // Save to localStorage
+      saveSession(currentSource.path, newTurns)
 
       const assistantMsg = {
         role: 'assistant',
@@ -598,133 +841,188 @@ export default function Workspace() {
   }
 
   const handleClear = () => {
-    setCurrentSource(null)
-    setMessages([])
-    setLatestResult(null)
-    setError('')
+    if (window.confirm('Clear all session history?')) {
+      localStorage.removeItem(SESSION_KEY)
+      setCurrentSource(null)
+      setMessages([])
+      setTurns([])
+      setActiveTurnIndex(null)
+      setCodeVisible({})
+      setError('')
+    }
   }
 
-  const conversationHistory = messages.map(m => ({ role: m.role, content: m.content }))
+  const activeResult = activeTurnIndex !== null ? turns[activeTurnIndex] : null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <WorkspaceNavbar />
+    <>
+      <style>{`
+        @keyframes typingDot {
+          0%, 60%, 100% { opacity: 0.2; transform: scale(0.8); }
+          30% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+        <WorkspaceNavbar />
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left panel */}
-        <div style={{
-          width: 420,
-          flexShrink: 0,
-          background: 'var(--bg-surface)',
-          borderRight: '1px solid var(--border-subtle)',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          overflow: 'hidden',
-        }}>
-          {/* Data source */}
-          <div style={{ padding: '16px 16px 20px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-            <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 12 }}>DATA SOURCE</p>
-            <DataSourceSection
-              currentSource={currentSource}
-              onSourceSet={(path, label) => setCurrentSource({ path, label })}
-              onClear={handleClear}
-            />
-          </div>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          {/* Left panel */}
+          <div style={{
+            width: 420,
+            flexShrink: 0,
+            background: 'var(--bg-surface)',
+            borderRight: '1px solid var(--border-subtle)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            overflow: 'hidden',
+          }}>
+            {/* Data source */}
+            <div style={{ padding: '16px 16px 20px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 12 }}>DATA SOURCE</p>
+              {savedSession && (
+                <div style={{ marginBottom: 12 }}>
+                  <RestoreBanner
+                    savedAt={new Date(savedSession.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    onRestore={handleRestoreSession}
+                    onDismiss={handleDismissSession}
+                  />
+                </div>
+              )}
+              <DataSourceSection
+                currentSource={currentSource}
+                onSourceSet={(path, label) => setCurrentSource({ path, label })}
+                onClear={handleClear}
+              />
+            </div>
 
-          {/* Conversation thread */}
-          <div
-            ref={threadRef}
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-            }}
-          >
-            {messages.length === 0 ? (
-              <EmptyConversation onChipClick={handleChipClick} />
-            ) : (
-              messages.map((msg, i) => (
-                <MessageBubble
-                  key={i}
-                  role={msg.role}
-                  content={msg.content}
-                  suggestions={msg.suggestions}
-                  onSuggestionClick={handleSuggestionClick}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Input */}
-          <div style={{ padding: 12, borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-            <textarea
-              rows={2}
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit()
-                }
-              }}
-              disabled={!currentSource || loading}
-              placeholder={currentSource ? 'Ask a question about your data...' : 'Load a data source above to start analyzing'}
+            {/* Conversation thread */}
+            <div
+              ref={threadRef}
               style={{
-                width: '100%',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-default)',
-                color: 'var(--text-primary)',
-                padding: '12px 14px',
-                borderRadius: 6,
-                fontSize: 14,
-                resize: 'none',
-                outline: 'none',
-                fontFamily: 'inherit',
-                transition: 'border-color 150ms ease, box-shadow 150ms ease',
-                opacity: (!currentSource || loading) ? 0.5 : 1,
-                cursor: (!currentSource || loading) ? 'not-allowed' : 'text',
+                flex: 1,
+                overflowY: 'auto',
+                padding: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
               }}
-              onFocus={e => {
-                e.target.style.borderColor = 'var(--accent-primary)'
-                e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.15)'
-              }}
-              onBlur={e => {
-                e.target.style.borderColor = 'var(--border-default)'
-                e.target.style.boxShadow = 'none'
-              }}
-            />
-            {!currentSource && (
-              <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
-                Load a data source above to start analyzing
-              </p>
+            >
+              {messages.length === 0 ? (
+                <EmptyConversation onChipClick={handleChipClick} />
+              ) : (
+                <>
+                  {messages.map((msg, i) => (
+                    <MessageBubble
+                      key={i}
+                      role={msg.role}
+                      content={msg.content}
+                      suggestions={msg.suggestions}
+                      onSuggestionClick={handleSuggestionClick}
+                    />
+                  ))}
+                  {loading && <TypingIndicator />}
+                </>
+              )}
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: 12, borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
+              <textarea
+                rows={2}
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmit()
+                  }
+                }}
+                disabled={!currentSource || loading}
+                placeholder={currentSource ? 'Ask a question about your data...' : 'Load a data source above to start analyzing'}
+                style={{
+                  width: '100%',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-default)',
+                  color: 'var(--text-primary)',
+                  padding: '12px 14px',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  resize: 'none',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  transition: 'border-color 150ms ease, box-shadow 150ms ease',
+                  opacity: (!currentSource || loading) ? 0.5 : 1,
+                  cursor: (!currentSource || loading) ? 'not-allowed' : 'text',
+                }}
+                onFocus={e => {
+                  e.target.style.borderColor = 'var(--accent-primary)'
+                  e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.15)'
+                }}
+                onBlur={e => {
+                  e.target.style.borderColor = 'var(--border-default)'
+                  e.target.style.boxShadow = 'none'
+                }}
+              />
+              {error && (
+                <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 6 }}>{error}</p>
+              )}
+              {turns.length > 0 && (
+                <button
+                  onClick={handleClear}
+                  style={{
+                    marginTop: 8,
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-tertiary)',
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontFamily: 'inherit',
+                    transition: 'color 150ms ease',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-secondary)' }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-tertiary)' }}
+                >
+                  Clear session history
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Right panel */}
+          <div style={{
+            flex: 1,
+            background: 'var(--bg-base)',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {turns.length > 1 && (
+              <TurnHistoryBar
+                turns={turns}
+                activeTurnIndex={activeTurnIndex}
+                onSelect={setActiveTurnIndex}
+              />
             )}
-            {error && (
-              <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 6 }}>{error}</p>
+            {loading ? (
+              <LoadingDashboard currentStep={loadingStep} />
+            ) : activeResult ? (
+              <AnalysisResults
+                result={activeResult.result}
+                methodologyUsed={activeResult.result.methodology_used}
+                codeVisible={codeVisible[activeTurnIndex] || false}
+                onToggleCode={() => setCodeVisible(prev => ({
+                  ...prev,
+                  [activeTurnIndex]: !prev[activeTurnIndex],
+                }))}
+              />
+            ) : (
+              <EmptyDashboard />
             )}
           </div>
-        </div>
-
-        {/* Right panel */}
-        <div style={{
-          flex: 1,
-          background: 'var(--bg-base)',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          {loading ? (
-            <LoadingDashboard currentStep={loadingStep} />
-          ) : latestResult ? (
-            <AnalysisResults result={latestResult} methodologyUsed={latestResult.methodology_used} />
-          ) : (
-            <EmptyDashboard />
-          )}
         </div>
       </div>
-    </div>
+    </>
   )
 }
