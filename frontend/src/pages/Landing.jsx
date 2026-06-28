@@ -65,7 +65,7 @@ function Navbar() {
           Star on GitHub
         </a>
         <button
-          onClick={() => navigate('/analyze')}
+          onClick={() => navigate('/analyze', { state: { loadDemo: true } })}
           style={{
             background: 'var(--accent-primary)',
             color: 'white',

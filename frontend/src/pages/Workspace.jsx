@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Upload, BarChart2, Lightbulb, AlertTriangle, Code2,
   MessageCircle, Github, CheckCircle2, Loader2, X,
@@ -91,7 +91,7 @@ function WorkspaceNavbar() {
   )
 }
 
-function DataSourceSection({ currentSource, onSourceSet, onClear }) {
+function DataSourceSection({ currentSource, onSourceSet, onClear, onLoadDemo }) {
   const [dragging, setDragging] = useState(false)
   const [urlValue, setUrlValue] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -217,6 +217,55 @@ function DataSourceSection({ currentSource, onSourceSet, onClear }) {
       {uploadError && (
         <p style={{ fontSize: 11, color: 'var(--error)', margin: 0 }}>{uploadError}</p>
       )}
+
+      {/* Demo separator + button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '12px 0' }}>
+        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>or try the demo</span>
+        <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+      </div>
+      <button
+        onClick={onLoadDemo}
+        style={{
+          width: '100%',
+          padding: '10px',
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 6,
+          color: 'var(--text-secondary)',
+          fontSize: 13,
+          fontWeight: 500,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          transition: 'all 150ms ease',
+          fontFamily: 'inherit',
+          marginBottom: 8,
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = 'var(--bg-overlay)'
+          e.currentTarget.style.borderColor = 'var(--border-strong)'
+          e.currentTarget.style.color = 'var(--text-primary)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = 'var(--bg-elevated)'
+          e.currentTarget.style.borderColor = 'var(--border-default)'
+          e.currentTarget.style.color = 'var(--text-secondary)'
+        }}
+      >
+        <BarChart2 size={14} />
+        Manufacturing Quality Dataset
+        <span style={{
+          fontSize: 10,
+          background: 'var(--accent-muted)',
+          color: '#a5b4fc',
+          padding: '1px 6px',
+          borderRadius: 999,
+          border: '1px solid var(--accent-border)',
+        }}>DEMO</span>
+      </button>
 
       <div style={{ display: 'flex', gap: 6 }}>
         <input
@@ -770,7 +819,13 @@ function loadSession() {
   }
 }
 
+const DEMO_SOURCE = {
+  path: 'http://localhost:8000/demo/manufacturing',
+  label: 'Manufacturing Quality Dataset',
+}
+
 export default function Workspace() {
+  const location = useLocation()
   const [currentSource, setCurrentSource] = useState(null)
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
@@ -784,14 +839,22 @@ export default function Workspace() {
   const threadRef = useRef(null)
   const stepTimerRef = useRef(null)
 
-  // On mount: warm up backend silently, then check for saved session
+  const loadDemo = () => {
+    setCurrentSource(DEMO_SOURCE)
+  }
+
+  // On mount: warm up backend, check for saved session, auto-load demo if routed from landing
   useEffect(() => {
     pingBackend()
+    if (location.state?.loadDemo) {
+      setCurrentSource(DEMO_SOURCE)
+      return // skip session restore when demo-loading
+    }
     const session = loadSession()
     if (session && session.turns?.length > 0) {
       setSavedSession(session)
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (threadRef.current) {
@@ -950,6 +1013,7 @@ export default function Workspace() {
                 currentSource={currentSource}
                 onSourceSet={(path, label) => setCurrentSource({ path, label })}
                 onClear={handleClear}
+                onLoadDemo={loadDemo}
               />
             </div>
 

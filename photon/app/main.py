@@ -10,7 +10,7 @@ import logging
 import threading
 import os
 
-from app.routes import query, workflow, health, execute, upload
+from app.routes import query, workflow, health, execute, upload, demo
 from app.services.auth import is_valid_key
 from app.services.redis_rate_limiter import RedisRateLimiter
 
@@ -34,6 +34,7 @@ app.include_router(workflow.router, prefix="/workflow", tags=["workflow"])
 app.include_router(execute.router, prefix="/execute", tags=["execute"])
 app.include_router(upload.router, prefix="/upload", tags=["upload"])
 app.include_router(health.router, prefix="", tags=["health"])
+app.include_router(demo.router, prefix="/demo", tags=["demo"])
 
 
 def _warmup_embedding_model():
