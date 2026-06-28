@@ -1,0 +1,501 @@
+date,order_id,client,department,equipment_id,operator_id,product_type,units_produced,defect_count,redo_count,scrap_count,inspection_result,shift,line_id
+2024-01-01,ORD-20240001,Titan Works,Painting,EQ-012,OP-014,Type-D,161,10,1,5,Fail,Morning,Line-2
+2024-01-01,ORD-20240002,Titan Works,Machining,EQ-005,OP-004,Type-C,94,2,3,0,Pass,Morning,Line-4
+2024-01-01,ORD-20240003,Quantum Parts,Assembly,EQ-001,OP-006,Type-B,130,2,2,0,Conditional,Morning,Line-1
+2024-01-02,ORD-20240004,Orion Systems,Assembly,EQ-002,OP-019,Type-D,92,2,6,0,Pass,Morning,Line-2
+2024-01-02,ORD-20240005,Titan Works,Assembly,EQ-008,OP-006,Type-A,162,3,1,2,Conditional,Afternoon,Line-3
+2024-01-02,ORD-20240006,Orion Systems,Assembly,EQ-003,OP-002,Type-C,128,5,0,0,Pass,Morning,Line-2
+2024-01-04,ORD-20240007,Pacific Components,Assembly,EQ-010,OP-018,Type-A,149,2,6,1,Pass,Night,Line-4
+2024-01-04,ORD-20240008,Titan Works,Welding,EQ-003,OP-013,Type-D,191,9,0,0,Fail,Afternoon,Line-3
+2024-01-05,ORD-20240009,Delta Industries,Machining,EQ-008,OP-009,Type-C,135,3,2,0,Pass,Morning,Line-1
+2024-01-05,ORD-20240010,Orion Systems,Painting,EQ-008,OP-023,Type-D,155,8,0,2,Fail,Night,Line-3
+2024-01-05,ORD-20240011,Orion Systems,Painting,EQ-002,OP-019,Type-A,130,5,4,1,Conditional,Afternoon,Line-1
+2024-01-08,ORD-20240012,Delta Industries,Painting,EQ-008,OP-013,Type-C,116,7,1,1,Fail,Night,Line-1
+2024-01-09,ORD-20240013,Titan Works,Painting,EQ-011,OP-011,Type-A,96,15,1,5,Conditional,Morning,Line-2
+2024-01-11,ORD-20240016,Delta Industries,Machining,EQ-008,OP-022,Type-A,169,2,1,1,Pass,Morning,Line-4
+2024-01-11,ORD-20240015,Orion Systems,Quality Control,EQ-006,OP-024,Type-D,166,2,0,1,Pass,Morning,Line-2
+2024-01-11,ORD-20240014,Delta Industries,Welding,EQ-001,OP-001,Type-D,137,7,2,0,Conditional,Morning,Line-2
+2024-01-12,ORD-20240017,Orion Systems,Assembly,EQ-003,OP-007,Type-C,108,3,3,0,Pass,Afternoon,Line-4
+2024-01-16,ORD-20240018,Orion Systems,Quality Control,EQ-008,OP-025,Type-A,112,1,2,0,Fail,Afternoon,Line-2
+2024-01-16,ORD-20240019,Pacific Components,Painting,EQ-012,OP-021,Type-D,139,6,2,4,Pass,Night,Line-4
+2024-01-17,ORD-20240020,Acme Corp,Quality Control,EQ-001,OP-015,Type-A,170,2,1,1,Pass,Morning,Line-3
+2024-01-17,ORD-20240021,Orion Systems,Machining,EQ-011,OP-001,Type-D,168,13,1,1,Conditional,Night,Line-3
+2024-01-17,ORD-20240022,Titan Works,Assembly,EQ-011,OP-012,Type-A,199,5,0,0,Fail,Afternoon,Line-4
+2024-01-18,ORD-20240023,Nexus Manufacturing,Assembly,EQ-009,OP-007,Type-C,134,4,0,0,Conditional,Morning,Line-4
+2024-01-18,ORD-20240024,Quantum Parts,Machining,EQ-011,OP-015,Type-C,89,3,0,0,Fail,Morning,Line-3
+2024-01-19,ORD-20240025,Stellar Fabrication,Machining,EQ-009,OP-021,Type-A,126,1,2,0,Pass,Afternoon,Line-1
+2024-01-19,ORD-20240026,Acme Corp,Painting,EQ-005,OP-019,Type-A,102,1,0,1,Pass,Afternoon,Line-3
+2024-01-22,ORD-20240027,Acme Corp,Assembly,EQ-010,OP-025,Type-C,164,2,7,0,Pass,Afternoon,Line-3
+2024-01-23,ORD-20240028,Acme Corp,Quality Control,EQ-004,OP-001,Type-D,100,0,1,0,Pass,Afternoon,Line-4
+2024-01-24,ORD-20240029,Pacific Components,Welding,EQ-011,OP-017,Type-C,186,8,3,0,Conditional,Afternoon,Line-3
+2024-01-25,ORD-20240031,Pacific Components,Machining,EQ-012,OP-003,Type-A,180,4,5,0,Conditional,Afternoon,Line-4
+2024-01-25,ORD-20240030,Orion Systems,Welding,EQ-006,OP-017,Type-D,92,2,1,0,Pass,Morning,Line-4
+2024-01-26,ORD-20240032,Orion Systems,Painting,EQ-007,OP-012,Type-A,112,12,0,4,Fail,Morning,Line-2
+2024-01-26,ORD-20240033,Titan Works,Welding,EQ-005,OP-006,Type-D,103,5,2,0,Conditional,Morning,Line-3
+2024-01-29,ORD-20240034,Pacific Components,Assembly,EQ-011,OP-011,Type-A,187,7,1,0,Conditional,Afternoon,Line-1
+2024-01-29,ORD-20240035,Pacific Components,Machining,EQ-010,OP-003,Type-D,90,4,5,1,Pass,Afternoon,Line-2
+2024-01-30,ORD-20240036,Quantum Parts,Quality Control,EQ-009,OP-008,Type-B,96,2,2,0,Conditional,Morning,Line-4
+2024-01-30,ORD-20240037,Nexus Manufacturing,Machining,EQ-003,OP-014,Type-C,147,2,1,0,Pass,Afternoon,Line-4
+2024-01-31,ORD-20240038,Pacific Components,Quality Control,EQ-007,OP-014,Type-B,126,8,2,0,Conditional,Afternoon,Line-1
+2024-02-02,ORD-20240039,Quantum Parts,Machining,EQ-010,OP-010,Type-D,104,3,1,0,Conditional,Afternoon,Line-4
+2024-02-05,ORD-20240040,Delta Industries,Machining,EQ-010,OP-002,Type-C,173,6,4,1,Conditional,Night,Line-3
+2024-02-06,ORD-20240041,Nexus Manufacturing,Machining,EQ-011,OP-014,Type-D,152,1,2,1,Pass,Morning,Line-2
+2024-02-07,ORD-20240042,Titan Works,Quality Control,EQ-005,OP-009,Type-C,100,2,1,1,Fail,Night,Line-4
+2024-02-07,ORD-20240043,Pacific Components,Quality Control,EQ-007,OP-003,Type-C,163,7,2,0,Conditional,Afternoon,Line-4
+2024-02-08,ORD-20240045,Acme Corp,Welding,EQ-004,OP-008,Type-C,162,6,0,0,Conditional,Afternoon,Line-3
+2024-02-08,ORD-20240044,Stellar Fabrication,Machining,EQ-002,OP-021,Type-C,162,8,2,0,Conditional,Night,Line-1
+2024-02-14,ORD-20240048,Titan Works,Painting,EQ-007,OP-006,Type-C,121,10,0,2,Fail,Night,Line-4
+2024-02-14,ORD-20240046,Delta Industries,Painting,EQ-002,OP-016,Type-D,91,8,2,5,Conditional,Night,Line-4
+2024-02-14,ORD-20240047,Delta Industries,Painting,EQ-012,OP-002,Type-C,116,10,1,3,Fail,Afternoon,Line-1
+2024-02-16,ORD-20240049,Quantum Parts,Quality Control,EQ-002,OP-021,Type-B,96,8,2,0,Fail,Night,Line-1
+2024-02-16,ORD-20240050,Delta Industries,Quality Control,EQ-011,OP-025,Type-A,180,6,2,2,Pass,Night,Line-1
+2024-02-16,ORD-20240051,Nexus Manufacturing,Welding,EQ-001,OP-012,Type-A,197,4,0,0,Conditional,Morning,Line-3
+2024-02-16,ORD-20240052,Pacific Components,Painting,EQ-009,OP-005,Type-B,127,7,0,2,Pass,Night,Line-4
+2024-02-19,ORD-20240053,Pacific Components,Painting,EQ-001,OP-002,Type-B,182,3,1,2,Pass,Morning,Line-3
+2024-02-19,ORD-20240054,Stellar Fabrication,Machining,EQ-008,OP-016,Type-D,107,4,1,0,Conditional,Afternoon,Line-1
+2024-02-19,ORD-20240055,Titan Works,Quality Control,EQ-002,OP-005,Type-D,120,4,3,1,Pass,Night,Line-2
+2024-02-20,ORD-20240058,Acme Corp,Welding,EQ-003,OP-004,Type-B,191,6,1,0,Pass,Night,Line-4
+2024-02-20,ORD-20240056,Acme Corp,Painting,EQ-012,OP-015,Type-D,178,5,2,1,Conditional,Afternoon,Line-4
+2024-02-20,ORD-20240057,Quantum Parts,Welding,EQ-008,OP-012,Type-B,126,7,2,0,Pass,Afternoon,Line-2
+2024-02-21,ORD-20240059,Delta Industries,Painting,EQ-006,OP-015,Type-C,97,8,2,1,Conditional,Morning,Line-3
+2024-02-22,ORD-20240064,Pacific Components,Assembly,EQ-002,OP-014,Type-C,150,3,1,0,Conditional,Morning,Line-2
+2024-02-22,ORD-20240063,Nexus Manufacturing,Welding,EQ-009,OP-006,Type-A,184,5,4,1,Pass,Night,Line-3
+2024-02-22,ORD-20240062,Acme Corp,Machining,EQ-010,OP-023,Type-D,187,2,0,0,Pass,Afternoon,Line-3
+2024-02-22,ORD-20240061,Stellar Fabrication,Welding,EQ-007,OP-016,Type-D,178,8,1,0,Conditional,Afternoon,Line-3
+2024-02-22,ORD-20240060,Titan Works,Quality Control,EQ-003,OP-011,Type-D,157,3,0,1,Pass,Night,Line-3
+2024-02-26,ORD-20240065,Delta Industries,Assembly,EQ-012,OP-018,Type-D,184,5,4,0,Conditional,Morning,Line-3
+2024-02-26,ORD-20240066,Stellar Fabrication,Quality Control,EQ-012,OP-012,Type-D,92,3,2,1,Fail,Afternoon,Line-1
+2024-02-27,ORD-20240067,Acme Corp,Painting,EQ-005,OP-011,Type-D,161,4,2,0,Pass,Afternoon,Line-1
+2024-02-27,ORD-20240068,Quantum Parts,Quality Control,EQ-006,OP-013,Type-A,180,1,1,0,Pass,Morning,Line-2
+2024-02-28,ORD-20240069,Nexus Manufacturing,Quality Control,EQ-004,OP-021,Type-A,92,8,0,0,Conditional,Night,Line-4
+2024-02-29,ORD-20240070,Nexus Manufacturing,Quality Control,EQ-004,OP-023,Type-B,179,3,1,1,Conditional,Afternoon,Line-1
+2024-02-29,ORD-20240071,Acme Corp,Quality Control,EQ-004,OP-011,Type-C,110,2,1,0,Pass,Morning,Line-4
+2024-02-29,ORD-20240072,Pacific Components,Machining,EQ-002,OP-023,Type-B,81,1,1,0,Pass,Afternoon,Line-2
+2024-02-29,ORD-20240073,Acme Corp,Machining,EQ-004,OP-016,Type-C,95,1,3,0,Pass,Night,Line-4
+2024-03-01,ORD-20240074,Delta Industries,Welding,EQ-011,OP-015,Type-A,88,7,2,0,Conditional,Morning,Line-4
+2024-03-04,ORD-20240075,Acme Corp,Assembly,EQ-001,OP-021,Type-D,152,3,3,1,Pass,Afternoon,Line-4
+2024-03-05,ORD-20240078,Acme Corp,Assembly,EQ-001,OP-004,Type-B,133,5,3,0,Conditional,Night,Line-1
+2024-03-05,ORD-20240077,Stellar Fabrication,Welding,EQ-006,OP-025,Type-D,154,6,1,1,Conditional,Afternoon,Line-2
+2024-03-05,ORD-20240076,Nexus Manufacturing,Quality Control,EQ-012,OP-015,Type-B,117,4,1,0,Conditional,Night,Line-4
+2024-03-06,ORD-20240079,Pacific Components,Painting,EQ-010,OP-011,Type-A,135,9,0,3,Fail,Night,Line-3
+2024-03-06,ORD-20240080,Titan Works,Machining,EQ-006,OP-019,Type-A,165,5,2,1,Conditional,Morning,Line-4
+2024-03-07,ORD-20240081,Stellar Fabrication,Assembly,EQ-001,OP-015,Type-A,176,5,1,0,Conditional,Night,Line-1
+2024-03-07,ORD-20240082,Quantum Parts,Painting,EQ-006,OP-004,Type-B,179,2,1,0,Conditional,Afternoon,Line-1
+2024-03-08,ORD-20240083,Orion Systems,Assembly,EQ-010,OP-021,Type-C,188,6,2,0,Pass,Night,Line-2
+2024-03-11,ORD-20240084,Acme Corp,Machining,EQ-008,OP-013,Type-B,166,3,2,1,Conditional,Night,Line-1
+2024-03-11,ORD-20240085,Pacific Components,Machining,EQ-011,OP-022,Type-C,124,4,0,0,Fail,Morning,Line-2
+2024-03-11,ORD-20240086,Stellar Fabrication,Welding,EQ-002,OP-019,Type-B,188,10,0,1,Fail,Night,Line-4
+2024-03-12,ORD-20240087,Pacific Components,Quality Control,EQ-002,OP-002,Type-B,113,2,3,0,Pass,Night,Line-4
+2024-03-12,ORD-20240088,Quantum Parts,Assembly,EQ-012,OP-014,Type-A,88,2,1,0,Pass,Afternoon,Line-3
+2024-03-12,ORD-20240089,Nexus Manufacturing,Assembly,EQ-004,OP-004,Type-D,167,6,0,0,Pass,Morning,Line-3
+2024-03-13,ORD-20240094,Pacific Components,Assembly,EQ-007,OP-015,Type-B,82,7,1,0,Conditional,Night,Line-3
+2024-03-13,ORD-20240092,Pacific Components,Assembly,EQ-004,OP-020,Type-D,115,2,1,0,Pass,Night,Line-4
+2024-03-13,ORD-20240093,Pacific Components,Machining,EQ-012,OP-014,Type-B,97,5,3,0,Conditional,Morning,Line-2
+2024-03-13,ORD-20240090,Pacific Components,Painting,EQ-011,OP-016,Type-D,87,8,1,4,Fail,Morning,Line-3
+2024-03-13,ORD-20240091,Stellar Fabrication,Machining,EQ-003,OP-021,Type-C,86,3,0,0,Conditional,Morning,Line-1
+2024-03-14,ORD-20240095,Delta Industries,Welding,EQ-011,OP-003,Type-A,107,9,3,0,Conditional,Night,Line-2
+2024-03-14,ORD-20240096,Delta Industries,Quality Control,EQ-001,OP-008,Type-A,149,6,1,0,Conditional,Afternoon,Line-2
+2024-03-14,ORD-20240097,Nexus Manufacturing,Assembly,EQ-006,OP-016,Type-D,187,2,0,0,Pass,Afternoon,Line-3
+2024-03-14,ORD-20240098,Acme Corp,Machining,EQ-003,OP-010,Type-C,123,2,3,0,Pass,Afternoon,Line-4
+2024-03-14,ORD-20240099,Pacific Components,Welding,EQ-011,OP-004,Type-D,100,5,2,2,Pass,Afternoon,Line-3
+2024-03-14,ORD-20240100,Quantum Parts,Assembly,EQ-010,OP-018,Type-D,107,4,0,0,Conditional,Afternoon,Line-2
+2024-03-15,ORD-20240101,Acme Corp,Painting,EQ-007,OP-002,Type-D,183,11,3,0,Fail,Night,Line-3
+2024-03-19,ORD-20240102,Quantum Parts,Quality Control,EQ-010,OP-017,Type-D,133,4,2,1,Conditional,Night,Line-2
+2024-03-20,ORD-20240108,Quantum Parts,Painting,EQ-009,OP-012,Type-D,178,4,1,5,Conditional,Afternoon,Line-2
+2024-03-20,ORD-20240106,Pacific Components,Welding,EQ-001,OP-011,Type-C,100,5,1,0,Conditional,Afternoon,Line-3
+2024-03-20,ORD-20240107,Orion Systems,Welding,EQ-003,OP-007,Type-A,186,8,0,0,Fail,Night,Line-1
+2024-03-20,ORD-20240104,Nexus Manufacturing,Welding,EQ-002,OP-004,Type-C,144,3,1,1,Conditional,Night,Line-3
+2024-03-20,ORD-20240103,Acme Corp,Assembly,EQ-002,OP-013,Type-B,133,2,0,0,Pass,Morning,Line-2
+2024-03-20,ORD-20240105,Pacific Components,Painting,EQ-004,OP-025,Type-B,179,7,5,2,Conditional,Night,Line-1
+2024-03-21,ORD-20240109,Acme Corp,Welding,EQ-007,OP-010,Type-B,92,6,1,0,Conditional,Morning,Line-2
+2024-03-22,ORD-20240110,Acme Corp,Painting,EQ-007,OP-007,Type-C,136,9,2,2,Pass,Morning,Line-1
+2024-03-22,ORD-20240111,Titan Works,Assembly,EQ-011,OP-013,Type-A,128,7,1,0,Conditional,Night,Line-2
+2024-03-26,ORD-20240112,Titan Works,Painting,EQ-004,OP-007,Type-A,197,13,2,1,Conditional,Morning,Line-1
+2024-03-26,ORD-20240113,Delta Industries,Painting,EQ-002,OP-024,Type-D,133,9,1,2,Fail,Night,Line-1
+2024-03-26,ORD-20240114,Orion Systems,Quality Control,EQ-004,OP-017,Type-C,89,3,3,0,Pass,Morning,Line-2
+2024-03-27,ORD-20240115,Stellar Fabrication,Painting,EQ-006,OP-010,Type-B,132,5,0,0,Pass,Afternoon,Line-4
+2024-03-27,ORD-20240116,Titan Works,Painting,EQ-011,OP-010,Type-D,123,12,1,4,Fail,Afternoon,Line-1
+2024-03-27,ORD-20240117,Stellar Fabrication,Assembly,EQ-011,OP-024,Type-B,126,7,0,1,Fail,Afternoon,Line-3
+2024-03-29,ORD-20240118,Delta Industries,Quality Control,EQ-003,OP-004,Type-A,132,2,1,0,Pass,Afternoon,Line-3
+2024-03-29,ORD-20240119,Delta Industries,Machining,EQ-001,OP-020,Type-B,153,2,4,0,Pass,Night,Line-2
+2024-04-01,ORD-20240120,Delta Industries,Assembly,EQ-012,OP-004,Type-B,125,0,1,1,Conditional,Morning,Line-4
+2024-04-03,ORD-20240121,Quantum Parts,Assembly,EQ-008,OP-022,Type-D,92,3,1,1,Conditional,Night,Line-2
+2024-04-04,ORD-20240123,Nexus Manufacturing,Painting,EQ-005,OP-022,Type-D,181,5,3,4,Conditional,Night,Line-1
+2024-04-04,ORD-20240122,Quantum Parts,Machining,EQ-012,OP-007,Type-B,116,6,0,2,Conditional,Afternoon,Line-4
+2024-04-04,ORD-20240124,Nexus Manufacturing,Welding,EQ-005,OP-001,Type-A,103,5,2,0,Pass,Morning,Line-1
+2024-04-05,ORD-20240125,Delta Industries,Quality Control,EQ-011,OP-012,Type-D,81,12,0,0,Fail,Night,Line-1
+2024-04-09,ORD-20240126,Orion Systems,Welding,EQ-004,OP-024,Type-D,165,0,2,0,Pass,Morning,Line-1
+2024-04-11,ORD-20240127,Acme Corp,Machining,EQ-006,OP-013,Type-C,160,6,0,1,Fail,Night,Line-3
+2024-04-12,ORD-20240128,Quantum Parts,Assembly,EQ-003,OP-010,Type-B,179,1,0,0,Fail,Morning,Line-3
+2024-04-12,ORD-20240129,Orion Systems,Assembly,EQ-009,OP-015,Type-A,93,1,2,0,Pass,Morning,Line-2
+2024-04-15,ORD-20240130,Pacific Components,Quality Control,EQ-005,OP-013,Type-D,89,3,2,0,Conditional,Afternoon,Line-4
+2024-04-15,ORD-20240131,Quantum Parts,Assembly,EQ-003,OP-023,Type-A,114,3,0,0,Conditional,Morning,Line-1
+2024-04-15,ORD-20240132,Quantum Parts,Assembly,EQ-011,OP-022,Type-C,104,6,2,0,Pass,Afternoon,Line-1
+2024-04-19,ORD-20240133,Nexus Manufacturing,Quality Control,EQ-001,OP-022,Type-B,82,3,3,1,Conditional,Afternoon,Line-4
+2024-04-22,ORD-20240134,Acme Corp,Quality Control,EQ-010,OP-021,Type-D,190,2,1,1,Pass,Afternoon,Line-4
+2024-04-22,ORD-20240135,Acme Corp,Machining,EQ-012,OP-022,Type-B,181,5,1,1,Pass,Night,Line-2
+2024-04-22,ORD-20240136,Titan Works,Assembly,EQ-006,OP-009,Type-C,96,7,1,0,Conditional,Night,Line-4
+2024-04-25,ORD-20240137,Stellar Fabrication,Assembly,EQ-002,OP-009,Type-C,91,8,2,0,Fail,Night,Line-1
+2024-04-29,ORD-20240138,Stellar Fabrication,Machining,EQ-003,OP-015,Type-A,133,3,2,0,Conditional,Night,Line-1
+2024-04-29,ORD-20240139,Stellar Fabrication,Painting,EQ-001,OP-010,Type-D,195,8,2,0,Pass,Morning,Line-1
+2024-05-01,ORD-20240140,Stellar Fabrication,Painting,EQ-009,OP-024,Type-A,103,7,2,1,Pass,Morning,Line-1
+2024-05-02,ORD-20240141,Pacific Components,Painting,EQ-008,OP-025,Type-C,108,10,2,2,Fail,Night,Line-1
+2024-05-02,ORD-20240142,Pacific Components,Machining,EQ-012,OP-010,Type-B,122,1,2,1,Pass,Morning,Line-2
+2024-05-03,ORD-20240143,Quantum Parts,Assembly,EQ-002,OP-008,Type-A,104,7,0,0,Conditional,Morning,Line-1
+2024-05-03,ORD-20240144,Delta Industries,Machining,EQ-012,OP-024,Type-A,179,2,1,1,Fail,Afternoon,Line-2
+2024-05-06,ORD-20240145,Nexus Manufacturing,Machining,EQ-011,OP-016,Type-B,139,8,3,1,Conditional,Afternoon,Line-1
+2024-05-07,ORD-20240146,Nexus Manufacturing,Painting,EQ-008,OP-017,Type-A,169,7,1,3,Conditional,Afternoon,Line-3
+2024-05-07,ORD-20240147,Stellar Fabrication,Welding,EQ-012,OP-005,Type-B,181,4,3,0,Conditional,Afternoon,Line-3
+2024-05-07,ORD-20240148,Quantum Parts,Assembly,EQ-009,OP-004,Type-D,144,9,0,0,Fail,Morning,Line-3
+2024-05-08,ORD-20240149,Titan Works,Painting,EQ-001,OP-018,Type-B,163,6,5,1,Conditional,Night,Line-3
+2024-05-09,ORD-20240150,Orion Systems,Welding,EQ-005,OP-024,Type-D,198,8,3,0,Fail,Morning,Line-2
+2024-05-10,ORD-20240151,Delta Industries,Welding,EQ-008,OP-019,Type-B,107,3,2,1,Pass,Morning,Line-2
+2024-05-10,ORD-20240152,Quantum Parts,Quality Control,EQ-011,OP-004,Type-C,95,7,0,0,Pass,Morning,Line-4
+2024-05-13,ORD-20240157,Stellar Fabrication,Assembly,EQ-012,OP-019,Type-D,137,0,2,0,Fail,Morning,Line-1
+2024-05-13,ORD-20240155,Delta Industries,Painting,EQ-007,OP-025,Type-D,183,5,3,2,Conditional,Afternoon,Line-2
+2024-05-13,ORD-20240156,Quantum Parts,Quality Control,EQ-003,OP-018,Type-C,171,4,3,2,Conditional,Night,Line-1
+2024-05-13,ORD-20240153,Delta Industries,Assembly,EQ-002,OP-007,Type-C,126,2,1,0,Conditional,Afternoon,Line-1
+2024-05-13,ORD-20240154,Delta Industries,Welding,EQ-004,OP-010,Type-D,160,5,1,0,Fail,Afternoon,Line-3
+2024-05-14,ORD-20240158,Nexus Manufacturing,Machining,EQ-005,OP-004,Type-B,155,4,0,0,Pass,Night,Line-2
+2024-05-14,ORD-20240159,Nexus Manufacturing,Painting,EQ-008,OP-010,Type-B,106,7,1,3,Pass,Afternoon,Line-3
+2024-05-15,ORD-20240160,Stellar Fabrication,Welding,EQ-012,OP-001,Type-C,197,8,1,0,Fail,Night,Line-4
+2024-05-16,ORD-20240161,Delta Industries,Welding,EQ-010,OP-023,Type-A,132,10,1,0,Fail,Morning,Line-1
+2024-05-16,ORD-20240162,Orion Systems,Painting,EQ-003,OP-018,Type-B,121,4,3,1,Conditional,Morning,Line-4
+2024-05-16,ORD-20240163,Acme Corp,Welding,EQ-004,OP-005,Type-D,138,6,1,0,Conditional,Afternoon,Line-3
+2024-05-16,ORD-20240164,Quantum Parts,Quality Control,EQ-009,OP-015,Type-A,126,2,0,0,Fail,Afternoon,Line-3
+2024-05-16,ORD-20240165,Acme Corp,Assembly,EQ-007,OP-017,Type-A,173,8,0,1,Fail,Night,Line-4
+2024-05-16,ORD-20240166,Titan Works,Quality Control,EQ-001,OP-003,Type-B,184,1,1,1,Pass,Afternoon,Line-3
+2024-05-16,ORD-20240167,Stellar Fabrication,Welding,EQ-012,OP-012,Type-B,113,6,7,0,Pass,Afternoon,Line-1
+2024-05-16,ORD-20240168,Orion Systems,Machining,EQ-004,OP-002,Type-A,116,1,0,0,Pass,Morning,Line-4
+2024-05-17,ORD-20240171,Delta Industries,Painting,EQ-006,OP-021,Type-D,175,5,2,3,Pass,Morning,Line-1
+2024-05-17,ORD-20240172,Nexus Manufacturing,Painting,EQ-009,OP-017,Type-C,175,2,1,1,Pass,Morning,Line-3
+2024-05-17,ORD-20240170,Stellar Fabrication,Assembly,EQ-009,OP-023,Type-C,86,7,2,0,Conditional,Afternoon,Line-4
+2024-05-17,ORD-20240169,Quantum Parts,Assembly,EQ-004,OP-001,Type-A,85,1,3,0,Pass,Afternoon,Line-3
+2024-05-20,ORD-20240173,Acme Corp,Machining,EQ-012,OP-022,Type-B,196,3,2,0,Fail,Night,Line-1
+2024-05-20,ORD-20240174,Pacific Components,Assembly,EQ-006,OP-016,Type-C,104,3,1,0,Conditional,Afternoon,Line-3
+2024-05-20,ORD-20240175,Pacific Components,Machining,EQ-006,OP-005,Type-C,112,5,0,0,Conditional,Morning,Line-2
+2024-05-20,ORD-20240176,Orion Systems,Painting,EQ-005,OP-015,Type-C,134,7,1,2,Conditional,Night,Line-3
+2024-05-22,ORD-20240177,Delta Industries,Painting,EQ-005,OP-003,Type-C,137,7,4,0,Fail,Night,Line-4
+2024-05-22,ORD-20240178,Titan Works,Assembly,EQ-002,OP-007,Type-D,86,5,0,0,Fail,Afternoon,Line-3
+2024-05-22,ORD-20240179,Acme Corp,Quality Control,EQ-008,OP-011,Type-D,195,4,1,1,Pass,Afternoon,Line-1
+2024-05-23,ORD-20240180,Delta Industries,Welding,EQ-008,OP-010,Type-A,136,6,3,1,Fail,Night,Line-1
+2024-05-23,ORD-20240181,Acme Corp,Painting,EQ-011,OP-009,Type-B,91,6,1,4,Fail,Morning,Line-3
+2024-05-24,ORD-20240182,Orion Systems,Painting,EQ-001,OP-014,Type-C,95,7,3,1,Pass,Night,Line-4
+2024-05-27,ORD-20240183,Orion Systems,Quality Control,EQ-008,OP-013,Type-A,159,3,1,0,Conditional,Afternoon,Line-2
+2024-05-27,ORD-20240184,Titan Works,Quality Control,EQ-005,OP-025,Type-A,122,2,0,0,Fail,Morning,Line-4
+2024-05-28,ORD-20240185,Pacific Components,Machining,EQ-002,OP-025,Type-A,196,1,0,0,Pass,Morning,Line-2
+2024-05-29,ORD-20240186,Delta Industries,Machining,EQ-002,OP-002,Type-D,179,5,2,0,Conditional,Night,Line-1
+2024-05-29,ORD-20240187,Quantum Parts,Welding,EQ-006,OP-003,Type-C,156,7,0,1,Conditional,Afternoon,Line-4
+2024-05-30,ORD-20240188,Pacific Components,Welding,EQ-011,OP-007,Type-C,86,10,1,0,Fail,Night,Line-2
+2024-06-04,ORD-20240189,Delta Industries,Assembly,EQ-009,OP-021,Type-B,179,6,2,1,Pass,Night,Line-3
+2024-06-04,ORD-20240190,Pacific Components,Machining,EQ-001,OP-018,Type-C,190,3,5,3,Conditional,Night,Line-1
+2024-06-05,ORD-20240191,Quantum Parts,Painting,EQ-012,OP-003,Type-C,130,6,1,3,Pass,Morning,Line-3
+2024-06-05,ORD-20240192,Nexus Manufacturing,Machining,EQ-006,OP-010,Type-A,152,0,1,0,Pass,Morning,Line-1
+2024-06-05,ORD-20240193,Nexus Manufacturing,Painting,EQ-009,OP-022,Type-B,111,2,2,0,Pass,Afternoon,Line-4
+2024-06-05,ORD-20240194,Titan Works,Quality Control,EQ-008,OP-007,Type-C,154,3,2,0,Conditional,Afternoon,Line-4
+2024-06-05,ORD-20240195,Nexus Manufacturing,Machining,EQ-011,OP-009,Type-D,87,6,2,0,Fail,Night,Line-1
+2024-06-06,ORD-20240196,Nexus Manufacturing,Quality Control,EQ-006,OP-017,Type-C,176,6,1,1,Conditional,Night,Line-1
+2024-06-06,ORD-20240197,Stellar Fabrication,Welding,EQ-003,OP-011,Type-A,166,2,2,0,Pass,Night,Line-1
+2024-06-07,ORD-20240198,Acme Corp,Welding,EQ-008,OP-007,Type-D,168,4,2,1,Conditional,Afternoon,Line-4
+2024-06-10,ORD-20240199,Stellar Fabrication,Assembly,EQ-009,OP-024,Type-A,199,2,0,0,Pass,Morning,Line-2
+2024-06-10,ORD-20240200,Stellar Fabrication,Machining,EQ-001,OP-014,Type-C,151,4,0,0,Conditional,Morning,Line-3
+2024-06-10,ORD-20240201,Titan Works,Quality Control,EQ-012,OP-019,Type-D,124,7,2,1,Pass,Night,Line-3
+2024-06-11,ORD-20240203,Nexus Manufacturing,Welding,EQ-006,OP-006,Type-B,138,11,2,1,Conditional,Night,Line-3
+2024-06-11,ORD-20240202,Stellar Fabrication,Painting,EQ-009,OP-004,Type-B,165,3,0,2,Conditional,Night,Line-4
+2024-06-12,ORD-20240204,Quantum Parts,Welding,EQ-006,OP-010,Type-D,83,11,2,0,Conditional,Night,Line-1
+2024-06-14,ORD-20240205,Titan Works,Painting,EQ-012,OP-007,Type-D,183,5,2,2,Conditional,Afternoon,Line-2
+2024-06-14,ORD-20240206,Titan Works,Quality Control,EQ-004,OP-013,Type-A,146,5,2,0,Pass,Morning,Line-3
+2024-06-17,ORD-20240207,Orion Systems,Quality Control,EQ-001,OP-014,Type-D,108,4,1,0,Pass,Night,Line-2
+2024-06-18,ORD-20240208,Titan Works,Machining,EQ-010,OP-004,Type-A,184,8,0,1,Fail,Afternoon,Line-1
+2024-06-18,ORD-20240209,Orion Systems,Machining,EQ-008,OP-008,Type-C,108,2,1,0,Pass,Night,Line-3
+2024-06-18,ORD-20240210,Titan Works,Assembly,EQ-002,OP-005,Type-A,177,4,1,0,Conditional,Night,Line-4
+2024-06-18,ORD-20240211,Acme Corp,Welding,EQ-012,OP-001,Type-D,177,6,1,0,Conditional,Morning,Line-2
+2024-06-19,ORD-20240212,Nexus Manufacturing,Machining,EQ-001,OP-004,Type-D,107,4,1,0,Fail,Night,Line-1
+2024-06-20,ORD-20240213,Titan Works,Quality Control,EQ-002,OP-003,Type-C,156,6,4,2,Pass,Morning,Line-2
+2024-06-20,ORD-20240214,Nexus Manufacturing,Painting,EQ-001,OP-009,Type-D,158,10,0,1,Fail,Morning,Line-3
+2024-06-21,ORD-20240215,Nexus Manufacturing,Quality Control,EQ-001,OP-008,Type-D,166,0,0,1,Pass,Morning,Line-3
+2024-06-24,ORD-20240218,Delta Industries,Assembly,EQ-004,OP-009,Type-C,83,4,0,0,Conditional,Morning,Line-1
+2024-06-24,ORD-20240219,Pacific Components,Welding,EQ-010,OP-007,Type-A,169,5,2,0,Conditional,Night,Line-4
+2024-06-24,ORD-20240216,Pacific Components,Welding,EQ-009,OP-001,Type-B,123,12,2,0,Conditional,Afternoon,Line-4
+2024-06-24,ORD-20240217,Titan Works,Quality Control,EQ-001,OP-006,Type-B,169,6,2,0,Pass,Afternoon,Line-1
+2024-06-25,ORD-20240220,Delta Industries,Painting,EQ-006,OP-004,Type-B,183,8,1,2,Pass,Morning,Line-4
+2024-06-25,ORD-20240221,Nexus Manufacturing,Assembly,EQ-007,OP-013,Type-A,88,4,1,0,Conditional,Night,Line-1
+2024-06-26,ORD-20240222,Nexus Manufacturing,Welding,EQ-002,OP-017,Type-D,198,7,1,1,Conditional,Morning,Line-2
+2024-06-26,ORD-20240223,Pacific Components,Painting,EQ-006,OP-002,Type-B,84,2,1,2,Pass,Night,Line-2
+2024-06-26,ORD-20240224,Pacific Components,Assembly,EQ-007,OP-005,Type-C,135,5,3,1,Conditional,Afternoon,Line-4
+2024-06-26,ORD-20240225,Delta Industries,Assembly,EQ-010,OP-012,Type-C,175,7,2,1,Conditional,Night,Line-2
+2024-06-27,ORD-20240226,Orion Systems,Welding,EQ-010,OP-021,Type-C,163,4,0,0,Pass,Morning,Line-1
+2024-06-27,ORD-20240227,Delta Industries,Machining,EQ-002,OP-008,Type-B,129,4,3,0,Pass,Afternoon,Line-3
+2024-06-27,ORD-20240228,Pacific Components,Assembly,EQ-002,OP-006,Type-A,154,5,1,0,Pass,Night,Line-3
+2024-06-28,ORD-20240229,Quantum Parts,Assembly,EQ-010,OP-008,Type-D,94,3,2,0,Pass,Night,Line-2
+2024-06-28,ORD-20240230,Pacific Components,Painting,EQ-007,OP-018,Type-A,111,8,8,3,Fail,Night,Line-4
+2024-07-01,ORD-20240233,Pacific Components,Welding,EQ-008,OP-012,Type-D,184,2,3,0,Pass,Afternoon,Line-4
+2024-07-01,ORD-20240234,Acme Corp,Machining,EQ-011,OP-003,Type-B,96,5,2,0,Fail,Afternoon,Line-4
+2024-07-01,ORD-20240231,Quantum Parts,Quality Control,EQ-012,OP-003,Type-A,107,4,8,0,Pass,Night,Line-4
+2024-07-01,ORD-20240232,Acme Corp,Welding,EQ-001,OP-022,Type-D,101,4,2,0,Pass,Night,Line-4
+2024-07-02,ORD-20240235,Orion Systems,Machining,EQ-003,OP-022,Type-B,138,5,4,1,Pass,Afternoon,Line-2
+2024-07-03,ORD-20240236,Delta Industries,Welding,EQ-011,OP-006,Type-B,169,5,1,1,Pass,Afternoon,Line-3
+2024-07-04,ORD-20240237,Quantum Parts,Machining,EQ-006,OP-002,Type-B,187,2,2,1,Pass,Morning,Line-3
+2024-07-04,ORD-20240238,Delta Industries,Painting,EQ-009,OP-023,Type-B,150,10,4,1,Fail,Afternoon,Line-2
+2024-07-05,ORD-20240240,Quantum Parts,Machining,EQ-009,OP-002,Type-A,136,1,2,0,Pass,Night,Line-2
+2024-07-05,ORD-20240241,Delta Industries,Welding,EQ-007,OP-006,Type-B,105,9,0,0,Fail,Afternoon,Line-3
+2024-07-05,ORD-20240239,Acme Corp,Welding,EQ-006,OP-012,Type-D,185,2,3,0,Fail,Night,Line-4
+2024-07-08,ORD-20240242,Pacific Components,Quality Control,EQ-009,OP-017,Type-B,104,1,2,0,Pass,Night,Line-1
+2024-07-08,ORD-20240243,Nexus Manufacturing,Assembly,EQ-002,OP-003,Type-A,89,4,1,0,Conditional,Afternoon,Line-2
+2024-07-09,ORD-20240244,Acme Corp,Welding,EQ-012,OP-002,Type-B,124,4,2,0,Conditional,Night,Line-4
+2024-07-11,ORD-20240245,Delta Industries,Assembly,EQ-008,OP-023,Type-A,162,3,2,0,Conditional,Morning,Line-3
+2024-07-12,ORD-20240246,Acme Corp,Machining,EQ-008,OP-020,Type-A,90,6,0,0,Conditional,Morning,Line-3
+2024-07-15,ORD-20240247,Stellar Fabrication,Assembly,EQ-002,OP-008,Type-D,156,1,2,0,Pass,Afternoon,Line-3
+2024-07-15,ORD-20240248,Acme Corp,Welding,EQ-012,OP-022,Type-C,132,4,1,1,Conditional,Afternoon,Line-3
+2024-07-16,ORD-20240249,Quantum Parts,Quality Control,EQ-004,OP-012,Type-D,151,3,1,1,Pass,Afternoon,Line-4
+2024-07-17,ORD-20240252,Quantum Parts,Machining,EQ-011,OP-013,Type-C,190,3,4,0,Fail,Morning,Line-2
+2024-07-17,ORD-20240250,Stellar Fabrication,Machining,EQ-011,OP-004,Type-C,183,6,1,0,Pass,Night,Line-1
+2024-07-17,ORD-20240251,Titan Works,Welding,EQ-007,OP-005,Type-C,147,9,1,0,Fail,Afternoon,Line-3
+2024-07-18,ORD-20240253,Nexus Manufacturing,Painting,EQ-004,OP-015,Type-B,174,7,3,4,Pass,Night,Line-1
+2024-07-18,ORD-20240254,Stellar Fabrication,Assembly,EQ-004,OP-025,Type-D,107,1,3,1,Pass,Afternoon,Line-3
+2024-07-18,ORD-20240255,Titan Works,Painting,EQ-006,OP-023,Type-C,154,7,4,1,Pass,Night,Line-1
+2024-07-18,ORD-20240256,Pacific Components,Welding,EQ-010,OP-016,Type-A,186,3,2,0,Conditional,Night,Line-2
+2024-07-18,ORD-20240257,Acme Corp,Quality Control,EQ-006,OP-010,Type-B,144,1,2,0,Pass,Afternoon,Line-3
+2024-07-18,ORD-20240258,Delta Industries,Machining,EQ-010,OP-025,Type-D,128,7,3,0,Pass,Night,Line-2
+2024-07-18,ORD-20240259,Orion Systems,Assembly,EQ-003,OP-023,Type-C,126,4,0,0,Conditional,Morning,Line-4
+2024-07-19,ORD-20240260,Acme Corp,Machining,EQ-009,OP-016,Type-A,131,3,3,0,Conditional,Morning,Line-3
+2024-07-19,ORD-20240261,Titan Works,Welding,EQ-012,OP-012,Type-D,181,4,3,1,Fail,Night,Line-3
+2024-07-22,ORD-20240262,Acme Corp,Machining,EQ-010,OP-017,Type-D,167,2,0,1,Pass,Afternoon,Line-3
+2024-07-23,ORD-20240268,Stellar Fabrication,Welding,EQ-012,OP-016,Type-A,184,8,1,1,Fail,Night,Line-4
+2024-07-23,ORD-20240267,Stellar Fabrication,Welding,EQ-007,OP-003,Type-B,110,5,3,1,Pass,Morning,Line-3
+2024-07-23,ORD-20240266,Stellar Fabrication,Quality Control,EQ-012,OP-020,Type-C,126,1,3,0,Pass,Night,Line-1
+2024-07-23,ORD-20240264,Pacific Components,Welding,EQ-002,OP-012,Type-D,139,4,1,2,Pass,Morning,Line-4
+2024-07-23,ORD-20240263,Nexus Manufacturing,Assembly,EQ-011,OP-016,Type-B,133,7,2,0,Conditional,Night,Line-3
+2024-07-23,ORD-20240265,Orion Systems,Machining,EQ-006,OP-008,Type-B,136,5,3,0,Fail,Night,Line-3
+2024-07-24,ORD-20240269,Titan Works,Quality Control,EQ-009,OP-013,Type-B,125,7,1,0,Pass,Night,Line-3
+2024-07-24,ORD-20240270,Quantum Parts,Painting,EQ-003,OP-023,Type-A,193,3,3,4,Conditional,Afternoon,Line-1
+2024-07-24,ORD-20240271,Quantum Parts,Assembly,EQ-010,OP-019,Type-B,105,3,0,1,Conditional,Afternoon,Line-4
+2024-07-25,ORD-20240272,Delta Industries,Painting,EQ-003,OP-008,Type-D,192,4,2,4,Pass,Morning,Line-4
+2024-07-26,ORD-20240273,Orion Systems,Machining,EQ-007,OP-022,Type-C,193,2,0,1,Pass,Morning,Line-1
+2024-07-26,ORD-20240274,Stellar Fabrication,Quality Control,EQ-004,OP-005,Type-A,84,3,4,0,Conditional,Morning,Line-1
+2024-07-29,ORD-20240275,Quantum Parts,Painting,EQ-008,OP-020,Type-B,163,4,3,2,Fail,Afternoon,Line-1
+2024-07-29,ORD-20240276,Titan Works,Welding,EQ-007,OP-008,Type-B,131,7,2,0,Pass,Morning,Line-1
+2024-07-29,ORD-20240277,Delta Industries,Machining,EQ-005,OP-024,Type-B,184,3,1,1,Conditional,Morning,Line-1
+2024-07-29,ORD-20240278,Pacific Components,Machining,EQ-007,OP-012,Type-D,154,6,0,0,Pass,Morning,Line-4
+2024-07-30,ORD-20240283,Nexus Manufacturing,Painting,EQ-002,OP-006,Type-A,117,1,0,4,Conditional,Morning,Line-3
+2024-07-30,ORD-20240281,Nexus Manufacturing,Quality Control,EQ-002,OP-021,Type-A,112,3,5,0,Pass,Morning,Line-3
+2024-07-30,ORD-20240282,Titan Works,Assembly,EQ-006,OP-020,Type-D,129,3,1,0,Conditional,Night,Line-2
+2024-07-30,ORD-20240279,Delta Industries,Painting,EQ-003,OP-001,Type-D,199,6,1,3,Conditional,Afternoon,Line-4
+2024-07-30,ORD-20240280,Quantum Parts,Painting,EQ-012,OP-025,Type-A,133,8,3,3,Fail,Night,Line-3
+2024-07-31,ORD-20240284,Stellar Fabrication,Painting,EQ-003,OP-022,Type-C,106,6,1,1,Pass,Night,Line-3
+2024-07-31,ORD-20240285,Nexus Manufacturing,Welding,EQ-006,OP-018,Type-C,177,5,2,1,Conditional,Afternoon,Line-1
+2024-08-01,ORD-20240286,Stellar Fabrication,Machining,EQ-005,OP-008,Type-D,94,2,2,1,Pass,Afternoon,Line-1
+2024-08-02,ORD-20240287,Stellar Fabrication,Assembly,EQ-008,OP-007,Type-A,175,2,2,1,Pass,Morning,Line-3
+2024-08-06,ORD-20240288,Quantum Parts,Welding,EQ-009,OP-001,Type-B,140,5,2,0,Fail,Night,Line-2
+2024-08-07,ORD-20240289,Nexus Manufacturing,Quality Control,EQ-011,OP-021,Type-C,100,3,5,0,Fail,Afternoon,Line-1
+2024-08-07,ORD-20240290,Stellar Fabrication,Quality Control,EQ-003,OP-016,Type-D,125,1,3,0,Fail,Morning,Line-3
+2024-08-07,ORD-20240291,Orion Systems,Painting,EQ-012,OP-012,Type-A,148,9,1,1,Conditional,Morning,Line-3
+2024-08-09,ORD-20240297,Nexus Manufacturing,Machining,EQ-007,OP-001,Type-D,161,2,5,0,Pass,Night,Line-2
+2024-08-09,ORD-20240295,Quantum Parts,Assembly,EQ-006,OP-014,Type-D,165,3,2,0,Conditional,Night,Line-2
+2024-08-09,ORD-20240296,Nexus Manufacturing,Painting,EQ-001,OP-004,Type-D,141,8,3,3,Fail,Night,Line-1
+2024-08-09,ORD-20240293,Delta Industries,Quality Control,EQ-003,OP-020,Type-B,117,5,4,1,Pass,Afternoon,Line-2
+2024-08-09,ORD-20240292,Pacific Components,Painting,EQ-010,OP-006,Type-D,85,3,4,2,Pass,Afternoon,Line-4
+2024-08-09,ORD-20240294,Delta Industries,Painting,EQ-003,OP-002,Type-C,141,7,2,0,Conditional,Morning,Line-4
+2024-08-12,ORD-20240298,Stellar Fabrication,Painting,EQ-012,OP-023,Type-B,157,4,4,2,Fail,Morning,Line-3
+2024-08-12,ORD-20240299,Titan Works,Welding,EQ-001,OP-018,Type-D,153,7,7,0,Conditional,Afternoon,Line-3
+2024-08-12,ORD-20240300,Acme Corp,Assembly,EQ-005,OP-013,Type-B,125,2,3,0,Pass,Morning,Line-2
+2024-08-12,ORD-20240301,Stellar Fabrication,Welding,EQ-010,OP-002,Type-B,92,6,2,0,Conditional,Afternoon,Line-2
+2024-08-13,ORD-20240302,Pacific Components,Welding,EQ-008,OP-009,Type-B,174,5,0,1,Pass,Night,Line-2
+2024-08-14,ORD-20240303,Orion Systems,Machining,EQ-004,OP-021,Type-C,173,6,2,1,Conditional,Night,Line-4
+2024-08-14,ORD-20240304,Delta Industries,Assembly,EQ-005,OP-002,Type-C,82,1,2,0,Pass,Afternoon,Line-2
+2024-08-14,ORD-20240305,Stellar Fabrication,Assembly,EQ-004,OP-025,Type-D,173,1,0,1,Pass,Afternoon,Line-1
+2024-08-14,ORD-20240306,Acme Corp,Assembly,EQ-012,OP-009,Type-D,85,0,4,0,Fail,Morning,Line-4
+2024-08-15,ORD-20240307,Acme Corp,Assembly,EQ-012,OP-001,Type-C,172,5,1,1,Pass,Night,Line-4
+2024-08-15,ORD-20240308,Stellar Fabrication,Assembly,EQ-004,OP-011,Type-A,87,1,4,0,Pass,Morning,Line-2
+2024-08-16,ORD-20240309,Quantum Parts,Machining,EQ-012,OP-003,Type-C,123,1,4,0,Pass,Morning,Line-1
+2024-08-16,ORD-20240310,Delta Industries,Painting,EQ-008,OP-020,Type-B,188,7,3,2,Pass,Morning,Line-4
+2024-08-20,ORD-20240311,Quantum Parts,Welding,EQ-002,OP-023,Type-C,186,7,2,0,Fail,Night,Line-3
+2024-08-20,ORD-20240312,Orion Systems,Assembly,EQ-001,OP-004,Type-B,187,3,0,0,Conditional,Morning,Line-4
+2024-08-21,ORD-20240314,Acme Corp,Painting,EQ-009,OP-023,Type-A,160,6,1,1,Pass,Morning,Line-1
+2024-08-21,ORD-20240313,Acme Corp,Painting,EQ-003,OP-018,Type-D,112,2,6,1,Conditional,Morning,Line-2
+2024-08-22,ORD-20240315,Pacific Components,Welding,EQ-004,OP-006,Type-D,191,4,3,1,Pass,Morning,Line-2
+2024-08-23,ORD-20240316,Orion Systems,Machining,EQ-010,OP-003,Type-B,154,1,5,3,Pass,Morning,Line-3
+2024-08-23,ORD-20240317,Acme Corp,Quality Control,EQ-005,OP-022,Type-B,156,1,1,0,Pass,Morning,Line-3
+2024-08-23,ORD-20240318,Orion Systems,Quality Control,EQ-002,OP-011,Type-B,129,2,0,0,Pass,Night,Line-3
+2024-08-23,ORD-20240319,Delta Industries,Painting,EQ-004,OP-015,Type-A,90,5,2,4,Pass,Morning,Line-2
+2024-08-23,ORD-20240320,Nexus Manufacturing,Welding,EQ-002,OP-022,Type-C,174,3,1,0,Conditional,Afternoon,Line-4
+2024-08-26,ORD-20240321,Acme Corp,Quality Control,EQ-002,OP-005,Type-D,107,2,3,0,Pass,Morning,Line-2
+2024-08-27,ORD-20240322,Pacific Components,Painting,EQ-004,OP-020,Type-D,187,7,1,3,Pass,Morning,Line-1
+2024-08-27,ORD-20240323,Delta Industries,Machining,EQ-006,OP-010,Type-C,149,6,1,0,Fail,Night,Line-4
+2024-08-27,ORD-20240324,Stellar Fabrication,Quality Control,EQ-007,OP-012,Type-D,120,7,0,1,Pass,Night,Line-3
+2024-08-27,ORD-20240325,Orion Systems,Painting,EQ-010,OP-015,Type-A,95,6,2,1,Conditional,Afternoon,Line-2
+2024-08-28,ORD-20240328,Delta Industries,Machining,EQ-010,OP-006,Type-C,127,4,1,0,Conditional,Night,Line-1
+2024-08-28,ORD-20240329,Stellar Fabrication,Assembly,EQ-006,OP-018,Type-A,135,1,4,0,Pass,Morning,Line-4
+2024-08-28,ORD-20240326,Stellar Fabrication,Painting,EQ-003,OP-017,Type-D,147,7,1,1,Pass,Afternoon,Line-3
+2024-08-28,ORD-20240327,Quantum Parts,Assembly,EQ-003,OP-010,Type-B,178,4,3,1,Pass,Night,Line-3
+2024-08-29,ORD-20240330,Titan Works,Welding,EQ-012,OP-013,Type-C,143,7,1,0,Conditional,Night,Line-1
+2024-08-29,ORD-20240331,Titan Works,Assembly,EQ-003,OP-003,Type-A,138,2,4,0,Pass,Afternoon,Line-1
+2024-08-30,ORD-20240332,Acme Corp,Assembly,EQ-002,OP-024,Type-B,169,2,1,1,Conditional,Morning,Line-1
+2024-09-02,ORD-20240333,Orion Systems,Quality Control,EQ-008,OP-010,Type-C,141,0,1,0,Pass,Afternoon,Line-3
+2024-09-02,ORD-20240334,Nexus Manufacturing,Painting,EQ-005,OP-014,Type-D,200,6,1,2,Pass,Morning,Line-1
+2024-09-03,ORD-20240336,Acme Corp,Assembly,EQ-003,OP-003,Type-C,90,1,4,3,Pass,Afternoon,Line-4
+2024-09-03,ORD-20240335,Delta Industries,Machining,EQ-001,OP-006,Type-A,155,5,2,0,Conditional,Night,Line-1
+2024-09-04,ORD-20240337,Pacific Components,Machining,EQ-010,OP-016,Type-D,180,5,1,1,Conditional,Morning,Line-4
+2024-09-05,ORD-20240338,Quantum Parts,Assembly,EQ-008,OP-007,Type-C,168,4,1,1,Pass,Morning,Line-1
+2024-09-05,ORD-20240339,Orion Systems,Welding,EQ-004,OP-020,Type-C,97,8,2,0,Fail,Night,Line-4
+2024-09-06,ORD-20240340,Delta Industries,Assembly,EQ-007,OP-014,Type-C,98,7,5,0,Pass,Night,Line-4
+2024-09-06,ORD-20240341,Titan Works,Quality Control,EQ-010,OP-009,Type-A,166,3,2,2,Conditional,Night,Line-1
+2024-09-06,ORD-20240342,Delta Industries,Painting,EQ-012,OP-015,Type-D,134,8,3,1,Fail,Afternoon,Line-3
+2024-09-09,ORD-20240343,Nexus Manufacturing,Welding,EQ-002,OP-021,Type-B,181,3,0,0,Conditional,Morning,Line-1
+2024-09-09,ORD-20240344,Titan Works,Assembly,EQ-007,OP-003,Type-A,197,10,4,0,Conditional,Night,Line-4
+2024-09-10,ORD-20240345,Nexus Manufacturing,Machining,EQ-005,OP-002,Type-A,161,1,2,0,Pass,Afternoon,Line-3
+2024-09-11,ORD-20240346,Pacific Components,Welding,EQ-005,OP-002,Type-A,105,4,3,0,Pass,Afternoon,Line-2
+2024-09-12,ORD-20240347,Quantum Parts,Welding,EQ-006,OP-003,Type-B,85,4,4,0,Pass,Afternoon,Line-3
+2024-09-13,ORD-20240348,Pacific Components,Assembly,EQ-009,OP-018,Type-D,83,2,8,1,Pass,Night,Line-4
+2024-09-16,ORD-20240349,Acme Corp,Welding,EQ-006,OP-014,Type-D,187,5,2,0,Conditional,Night,Line-3
+2024-09-16,ORD-20240350,Acme Corp,Machining,EQ-012,OP-020,Type-D,194,0,3,0,Pass,Morning,Line-1
+2024-09-17,ORD-20240353,Pacific Components,Assembly,EQ-009,OP-025,Type-C,177,2,2,0,Fail,Afternoon,Line-2
+2024-09-17,ORD-20240354,Quantum Parts,Painting,EQ-004,OP-002,Type-B,96,5,2,2,Conditional,Afternoon,Line-4
+2024-09-17,ORD-20240351,Pacific Components,Welding,EQ-008,OP-018,Type-C,108,7,1,0,Fail,Morning,Line-2
+2024-09-17,ORD-20240352,Quantum Parts,Machining,EQ-007,OP-010,Type-C,138,8,2,1,Conditional,Night,Line-2
+2024-09-18,ORD-20240355,Quantum Parts,Welding,EQ-002,OP-025,Type-C,186,4,4,0,Pass,Afternoon,Line-4
+2024-09-18,ORD-20240356,Stellar Fabrication,Painting,EQ-007,OP-022,Type-B,122,9,2,2,Conditional,Morning,Line-2
+2024-09-18,ORD-20240357,Titan Works,Machining,EQ-006,OP-001,Type-D,196,6,2,1,Conditional,Afternoon,Line-3
+2024-09-19,ORD-20240358,Orion Systems,Welding,EQ-001,OP-004,Type-C,159,4,1,0,Pass,Morning,Line-2
+2024-09-19,ORD-20240359,Quantum Parts,Quality Control,EQ-011,OP-014,Type-C,145,5,1,1,Pass,Morning,Line-3
+2024-09-20,ORD-20240364,Stellar Fabrication,Assembly,EQ-003,OP-014,Type-A,185,1,2,2,Pass,Afternoon,Line-4
+2024-09-20,ORD-20240365,Titan Works,Painting,EQ-005,OP-020,Type-D,87,7,3,3,Conditional,Morning,Line-1
+2024-09-20,ORD-20240363,Quantum Parts,Welding,EQ-002,OP-022,Type-A,92,7,1,1,Fail,Night,Line-2
+2024-09-20,ORD-20240360,Nexus Manufacturing,Painting,EQ-009,OP-001,Type-A,113,8,6,2,Fail,Afternoon,Line-3
+2024-09-20,ORD-20240361,Quantum Parts,Welding,EQ-009,OP-014,Type-B,198,5,1,0,Conditional,Afternoon,Line-4
+2024-09-20,ORD-20240362,Quantum Parts,Painting,EQ-012,OP-016,Type-D,87,11,1,2,Conditional,Night,Line-3
+2024-09-23,ORD-20240366,Stellar Fabrication,Quality Control,EQ-005,OP-003,Type-A,173,3,1,0,Pass,Morning,Line-1
+2024-09-23,ORD-20240367,Acme Corp,Quality Control,EQ-001,OP-003,Type-B,175,4,4,0,Conditional,Morning,Line-4
+2024-09-23,ORD-20240368,Stellar Fabrication,Machining,EQ-008,OP-009,Type-B,179,2,2,0,Pass,Morning,Line-2
+2024-09-24,ORD-20240369,Nexus Manufacturing,Welding,EQ-012,OP-006,Type-C,190,5,2,2,Pass,Morning,Line-1
+2024-09-24,ORD-20240370,Nexus Manufacturing,Painting,EQ-008,OP-025,Type-A,173,3,3,1,Pass,Night,Line-1
+2024-09-24,ORD-20240371,Stellar Fabrication,Machining,EQ-004,OP-013,Type-C,144,6,3,2,Fail,Afternoon,Line-3
+2024-09-24,ORD-20240372,Titan Works,Painting,EQ-007,OP-021,Type-A,122,13,3,2,Fail,Night,Line-3
+2024-09-26,ORD-20240373,Pacific Components,Welding,EQ-011,OP-002,Type-B,118,7,2,0,Fail,Morning,Line-2
+2024-09-26,ORD-20240374,Orion Systems,Quality Control,EQ-010,OP-008,Type-B,160,3,1,3,Pass,Morning,Line-4
+2024-09-27,ORD-20240375,Titan Works,Assembly,EQ-003,OP-021,Type-B,138,0,4,1,Pass,Morning,Line-2
+2024-09-30,ORD-20240377,Quantum Parts,Machining,EQ-010,OP-004,Type-B,167,3,2,1,Pass,Afternoon,Line-1
+2024-09-30,ORD-20240376,Stellar Fabrication,Quality Control,EQ-006,OP-002,Type-A,163,3,3,0,Pass,Morning,Line-4
+2024-10-02,ORD-20240378,Delta Industries,Assembly,EQ-010,OP-025,Type-A,193,7,1,0,Conditional,Morning,Line-3
+2024-10-02,ORD-20240379,Orion Systems,Machining,EQ-012,OP-015,Type-C,165,3,2,2,Fail,Afternoon,Line-2
+2024-10-02,ORD-20240380,Orion Systems,Welding,EQ-009,OP-004,Type-A,172,3,2,0,Pass,Morning,Line-2
+2024-10-03,ORD-20240381,Nexus Manufacturing,Assembly,EQ-001,OP-013,Type-C,165,3,5,1,Conditional,Afternoon,Line-4
+2024-10-07,ORD-20240382,Orion Systems,Machining,EQ-005,OP-012,Type-A,123,3,2,1,Pass,Night,Line-4
+2024-10-07,ORD-20240383,Stellar Fabrication,Welding,EQ-004,OP-013,Type-C,88,3,1,1,Pass,Morning,Line-2
+2024-10-08,ORD-20240384,Quantum Parts,Quality Control,EQ-008,OP-014,Type-B,116,2,3,1,Pass,Afternoon,Line-4
+2024-10-08,ORD-20240385,Quantum Parts,Welding,EQ-011,OP-020,Type-C,153,8,0,1,Fail,Night,Line-2
+2024-10-09,ORD-20240386,Acme Corp,Painting,EQ-012,OP-018,Type-B,115,2,4,1,Conditional,Morning,Line-2
+2024-10-09,ORD-20240387,Quantum Parts,Welding,EQ-001,OP-006,Type-B,180,4,1,0,Conditional,Morning,Line-2
+2024-10-10,ORD-20240388,Titan Works,Welding,EQ-009,OP-011,Type-C,171,4,3,1,Conditional,Morning,Line-1
+2024-10-14,ORD-20240389,Quantum Parts,Painting,EQ-006,OP-002,Type-A,107,5,1,3,Pass,Afternoon,Line-4
+2024-10-14,ORD-20240390,Nexus Manufacturing,Machining,EQ-004,OP-023,Type-A,121,1,0,0,Pass,Afternoon,Line-3
+2024-10-15,ORD-20240391,Quantum Parts,Machining,EQ-012,OP-019,Type-D,122,8,0,1,Fail,Night,Line-3
+2024-10-16,ORD-20240392,Acme Corp,Welding,EQ-009,OP-019,Type-A,164,8,0,0,Fail,Afternoon,Line-4
+2024-10-16,ORD-20240393,Delta Industries,Painting,EQ-011,OP-005,Type-D,167,10,0,2,Fail,Afternoon,Line-2
+2024-10-16,ORD-20240394,Stellar Fabrication,Painting,EQ-005,OP-019,Type-A,121,5,0,2,Pass,Morning,Line-3
+2024-10-23,ORD-20240395,Nexus Manufacturing,Quality Control,EQ-005,OP-002,Type-A,183,0,0,2,Pass,Morning,Line-3
+2024-10-23,ORD-20240396,Titan Works,Machining,EQ-012,OP-010,Type-B,145,4,3,0,Pass,Morning,Line-4
+2024-10-24,ORD-20240397,Delta Industries,Assembly,EQ-005,OP-025,Type-D,134,2,2,0,Fail,Morning,Line-3
+2024-10-25,ORD-20240398,Nexus Manufacturing,Machining,EQ-001,OP-002,Type-A,151,3,5,0,Conditional,Morning,Line-2
+2024-10-25,ORD-20240399,Pacific Components,Machining,EQ-001,OP-011,Type-D,127,1,0,1,Pass,Morning,Line-4
+2024-10-25,ORD-20240400,Orion Systems,Quality Control,EQ-008,OP-018,Type-B,170,3,5,0,Pass,Morning,Line-2
+2024-10-25,ORD-20240401,Pacific Components,Assembly,EQ-012,OP-024,Type-B,101,5,1,0,Conditional,Night,Line-3
+2024-10-25,ORD-20240402,Quantum Parts,Quality Control,EQ-008,OP-015,Type-D,180,1,0,0,Pass,Night,Line-3
+2024-10-28,ORD-20240403,Delta Industries,Assembly,EQ-012,OP-009,Type-B,106,4,2,0,Pass,Night,Line-2
+2024-10-29,ORD-20240408,Acme Corp,Assembly,EQ-002,OP-021,Type-A,92,3,1,0,Pass,Night,Line-1
+2024-10-29,ORD-20240406,Nexus Manufacturing,Quality Control,EQ-011,OP-009,Type-B,146,7,3,0,Conditional,Night,Line-1
+2024-10-29,ORD-20240407,Orion Systems,Machining,EQ-004,OP-003,Type-C,187,1,5,0,Fail,Morning,Line-3
+2024-10-29,ORD-20240404,Quantum Parts,Welding,EQ-006,OP-023,Type-C,200,3,1,0,Pass,Night,Line-1
+2024-10-29,ORD-20240405,Orion Systems,Assembly,EQ-012,OP-019,Type-C,172,1,1,1,Pass,Morning,Line-3
+2024-10-30,ORD-20240409,Orion Systems,Assembly,EQ-002,OP-009,Type-D,124,3,1,0,Conditional,Afternoon,Line-1
+2024-10-30,ORD-20240410,Acme Corp,Painting,EQ-009,OP-014,Type-A,89,5,2,1,Conditional,Night,Line-1
+2024-10-30,ORD-20240411,Orion Systems,Machining,EQ-005,OP-019,Type-D,179,6,1,0,Conditional,Night,Line-2
+2024-10-30,ORD-20240412,Stellar Fabrication,Welding,EQ-004,OP-007,Type-B,88,4,1,1,Pass,Morning,Line-1
+2024-11-01,ORD-20240413,Acme Corp,Quality Control,EQ-010,OP-016,Type-A,133,3,0,0,Conditional,Night,Line-1
+2024-11-01,ORD-20240414,Delta Industries,Welding,EQ-001,OP-016,Type-B,199,6,1,1,Pass,Afternoon,Line-1
+2024-11-01,ORD-20240415,Quantum Parts,Machining,EQ-007,OP-001,Type-B,198,4,1,1,Fail,Morning,Line-3
+2024-11-01,ORD-20240416,Titan Works,Assembly,EQ-003,OP-004,Type-D,106,4,0,0,Conditional,Morning,Line-1
+2024-11-04,ORD-20240417,Quantum Parts,Assembly,EQ-006,OP-004,Type-D,113,5,2,0,Pass,Night,Line-3
+2024-11-05,ORD-20240418,Pacific Components,Machining,EQ-005,OP-007,Type-D,194,3,1,1,Pass,Morning,Line-1
+2024-11-05,ORD-20240419,Quantum Parts,Assembly,EQ-005,OP-008,Type-A,80,2,2,0,Pass,Morning,Line-1
+2024-11-06,ORD-20240421,Stellar Fabrication,Assembly,EQ-005,OP-005,Type-D,168,1,1,0,Pass,Morning,Line-3
+2024-11-06,ORD-20240423,Pacific Components,Quality Control,EQ-001,OP-020,Type-A,150,2,1,1,Pass,Morning,Line-3
+2024-11-06,ORD-20240420,Nexus Manufacturing,Assembly,EQ-011,OP-017,Type-C,111,8,1,0,Fail,Morning,Line-2
+2024-11-06,ORD-20240422,Orion Systems,Quality Control,EQ-001,OP-007,Type-D,172,1,4,1,Pass,Morning,Line-1
+2024-11-07,ORD-20240424,Nexus Manufacturing,Painting,EQ-003,OP-020,Type-D,192,7,1,3,Fail,Afternoon,Line-3
+2024-11-07,ORD-20240425,Nexus Manufacturing,Welding,EQ-012,OP-004,Type-A,146,4,3,1,Fail,Night,Line-4
+2024-11-07,ORD-20240426,Acme Corp,Machining,EQ-010,OP-006,Type-B,163,1,0,1,Pass,Afternoon,Line-2
+2024-11-08,ORD-20240427,Quantum Parts,Machining,EQ-004,OP-007,Type-D,99,3,2,0,Fail,Morning,Line-2
+2024-11-08,ORD-20240428,Delta Industries,Machining,EQ-005,OP-018,Type-D,196,1,5,1,Pass,Morning,Line-2
+2024-11-08,ORD-20240429,Titan Works,Painting,EQ-002,OP-005,Type-B,173,9,1,3,Conditional,Night,Line-4
+2024-11-11,ORD-20240430,Delta Industries,Quality Control,EQ-008,OP-020,Type-B,114,1,0,0,Pass,Afternoon,Line-4
+2024-11-12,ORD-20240433,Delta Industries,Welding,EQ-002,OP-022,Type-C,182,6,1,1,Conditional,Morning,Line-4
+2024-11-12,ORD-20240431,Pacific Components,Painting,EQ-011,OP-003,Type-B,178,13,2,2,Conditional,Night,Line-2
+2024-11-12,ORD-20240432,Stellar Fabrication,Machining,EQ-011,OP-007,Type-D,192,6,2,0,Conditional,Afternoon,Line-4
+2024-11-12,ORD-20240434,Orion Systems,Assembly,EQ-009,OP-014,Type-C,170,4,1,0,Conditional,Night,Line-4
+2024-11-14,ORD-20240435,Delta Industries,Quality Control,EQ-002,OP-007,Type-C,169,8,1,0,Fail,Night,Line-2
+2024-11-14,ORD-20240436,Pacific Components,Quality Control,EQ-009,OP-005,Type-D,157,2,2,3,Pass,Morning,Line-2
+2024-11-15,ORD-20240438,Delta Industries,Quality Control,EQ-008,OP-005,Type-D,97,4,1,0,Pass,Afternoon,Line-4
+2024-11-15,ORD-20240437,Titan Works,Painting,EQ-007,OP-022,Type-B,96,9,1,3,Conditional,Night,Line-2
+2024-11-18,ORD-20240439,Orion Systems,Machining,EQ-011,OP-023,Type-B,124,6,2,0,Pass,Afternoon,Line-2
+2024-11-18,ORD-20240440,Acme Corp,Machining,EQ-002,OP-002,Type-D,195,6,0,0,Conditional,Afternoon,Line-4
+2024-11-18,ORD-20240441,Stellar Fabrication,Painting,EQ-007,OP-021,Type-D,172,9,3,1,Fail,Afternoon,Line-1
+2024-11-18,ORD-20240442,Pacific Components,Machining,EQ-012,OP-022,Type-B,163,2,3,2,Pass,Morning,Line-4
+2024-11-20,ORD-20240443,Acme Corp,Welding,EQ-006,OP-006,Type-C,132,5,1,3,Conditional,Night,Line-3
+2024-11-20,ORD-20240444,Acme Corp,Painting,EQ-004,OP-015,Type-B,170,5,0,2,Conditional,Afternoon,Line-2
+2024-11-20,ORD-20240445,Acme Corp,Welding,EQ-007,OP-021,Type-A,161,10,1,0,Fail,Morning,Line-2
+2024-11-20,ORD-20240446,Nexus Manufacturing,Assembly,EQ-004,OP-010,Type-A,147,4,2,0,Pass,Night,Line-3
+2024-11-20,ORD-20240447,Stellar Fabrication,Welding,EQ-002,OP-023,Type-B,144,4,2,0,Conditional,Night,Line-4
+2024-11-20,ORD-20240448,Titan Works,Assembly,EQ-010,OP-024,Type-D,193,1,1,1,Pass,Morning,Line-1
+2024-11-21,ORD-20240449,Quantum Parts,Assembly,EQ-012,OP-007,Type-A,80,3,4,0,Pass,Morning,Line-3
+2024-11-22,ORD-20240450,Stellar Fabrication,Welding,EQ-007,OP-005,Type-A,137,9,3,0,Fail,Afternoon,Line-3
+2024-11-25,ORD-20240451,Nexus Manufacturing,Painting,EQ-008,OP-001,Type-D,105,9,4,2,Conditional,Night,Line-4
+2024-11-26,ORD-20240453,Stellar Fabrication,Machining,EQ-005,OP-021,Type-C,99,5,1,0,Conditional,Morning,Line-4
+2024-11-26,ORD-20240454,Acme Corp,Assembly,EQ-001,OP-018,Type-D,195,8,2,1,Conditional,Night,Line-3
+2024-11-26,ORD-20240452,Quantum Parts,Machining,EQ-002,OP-013,Type-D,188,1,2,0,Pass,Night,Line-2
+2024-11-27,ORD-20240455,Pacific Components,Assembly,EQ-007,OP-013,Type-B,166,3,2,1,Conditional,Afternoon,Line-3
+2024-11-27,ORD-20240456,Quantum Parts,Painting,EQ-008,OP-021,Type-B,89,5,2,0,Pass,Night,Line-2
+2024-11-28,ORD-20240457,Orion Systems,Quality Control,EQ-006,OP-021,Type-C,138,3,2,0,Fail,Morning,Line-2
+2024-11-28,ORD-20240458,Orion Systems,Welding,EQ-005,OP-018,Type-A,154,6,1,2,Conditional,Morning,Line-2
+2024-11-29,ORD-20240459,Delta Industries,Assembly,EQ-006,OP-005,Type-A,120,5,0,0,Fail,Afternoon,Line-4
+2024-12-02,ORD-20240460,Quantum Parts,Machining,EQ-002,OP-013,Type-D,184,3,1,0,Pass,Afternoon,Line-2
+2024-12-03,ORD-20240461,Pacific Components,Painting,EQ-001,OP-004,Type-B,84,5,2,1,Pass,Night,Line-3
+2024-12-03,ORD-20240462,Titan Works,Welding,EQ-007,OP-017,Type-A,144,7,6,0,Pass,Night,Line-3
+2024-12-03,ORD-20240463,Nexus Manufacturing,Painting,EQ-007,OP-003,Type-C,96,6,4,1,Pass,Morning,Line-1
+2024-12-04,ORD-20240464,Acme Corp,Welding,EQ-010,OP-017,Type-C,101,2,0,0,Pass,Afternoon,Line-4
+2024-12-05,ORD-20240465,Delta Industries,Welding,EQ-011,OP-011,Type-B,177,5,0,1,Pass,Afternoon,Line-1
+2024-12-09,ORD-20240467,Nexus Manufacturing,Painting,EQ-002,OP-020,Type-C,188,6,1,1,Fail,Night,Line-1
+2024-12-09,ORD-20240466,Orion Systems,Assembly,EQ-010,OP-021,Type-C,199,3,3,0,Pass,Afternoon,Line-3
+2024-12-10,ORD-20240471,Titan Works,Assembly,EQ-008,OP-002,Type-C,148,8,2,0,Fail,Night,Line-1
+2024-12-10,ORD-20240470,Titan Works,Machining,EQ-010,OP-004,Type-D,147,3,1,1,Fail,Morning,Line-2
+2024-12-10,ORD-20240468,Nexus Manufacturing,Painting,EQ-002,OP-023,Type-B,120,3,2,2,Fail,Afternoon,Line-3
+2024-12-10,ORD-20240469,Acme Corp,Machining,EQ-001,OP-021,Type-D,172,3,2,0,Fail,Morning,Line-1
+2024-12-12,ORD-20240472,Quantum Parts,Assembly,EQ-008,OP-020,Type-D,90,2,8,0,Pass,Night,Line-2
+2024-12-13,ORD-20240473,Orion Systems,Quality Control,EQ-001,OP-016,Type-D,135,1,1,1,Pass,Afternoon,Line-2
+2024-12-13,ORD-20240474,Titan Works,Machining,EQ-012,OP-018,Type-C,130,2,5,1,Pass,Night,Line-4
+2024-12-17,ORD-20240475,Pacific Components,Welding,EQ-011,OP-008,Type-D,100,0,1,1,Conditional,Morning,Line-2
+2024-12-17,ORD-20240476,Titan Works,Painting,EQ-008,OP-003,Type-C,178,11,8,2,Fail,Afternoon,Line-2
+2024-12-17,ORD-20240477,Nexus Manufacturing,Assembly,EQ-009,OP-009,Type-A,155,2,0,0,Pass,Morning,Line-1
+2024-12-17,ORD-20240478,Acme Corp,Painting,EQ-004,OP-020,Type-B,105,1,1,4,Pass,Afternoon,Line-3
+2024-12-17,ORD-20240479,Pacific Components,Painting,EQ-001,OP-006,Type-B,194,15,3,0,Fail,Night,Line-4
+2024-12-17,ORD-20240480,Quantum Parts,Quality Control,EQ-001,OP-010,Type-D,98,1,0,0,Pass,Afternoon,Line-2
+2024-12-18,ORD-20240483,Nexus Manufacturing,Painting,EQ-005,OP-013,Type-B,150,7,1,3,Conditional,Morning,Line-2
+2024-12-18,ORD-20240484,Pacific Components,Assembly,EQ-009,OP-017,Type-A,126,4,2,0,Conditional,Afternoon,Line-1
+2024-12-18,ORD-20240481,Orion Systems,Machining,EQ-003,OP-021,Type-D,188,1,3,2,Pass,Afternoon,Line-4
+2024-12-18,ORD-20240482,Quantum Parts,Assembly,EQ-005,OP-010,Type-D,139,2,0,0,Pass,Morning,Line-1
+2024-12-19,ORD-20240485,Pacific Components,Welding,EQ-010,OP-009,Type-A,198,7,0,0,Pass,Night,Line-4
+2024-12-19,ORD-20240486,Pacific Components,Quality Control,EQ-012,OP-017,Type-B,150,5,0,1,Pass,Night,Line-1
+2024-12-19,ORD-20240487,Nexus Manufacturing,Welding,EQ-002,OP-024,Type-A,105,5,3,1,Conditional,Morning,Line-4
+2024-12-20,ORD-20240488,Nexus Manufacturing,Assembly,EQ-002,OP-009,Type-B,119,4,1,2,Fail,Night,Line-1
+2024-12-20,ORD-20240489,Quantum Parts,Assembly,EQ-006,OP-009,Type-A,84,2,4,1,Conditional,Morning,Line-4
+2024-12-23,ORD-20240490,Delta Industries,Machining,EQ-009,OP-001,Type-C,100,5,0,1,Conditional,Night,Line-3
+2024-12-24,ORD-20240491,Quantum Parts,Painting,EQ-001,OP-002,Type-C,157,9,2,2,Conditional,Afternoon,Line-1
+2024-12-24,ORD-20240492,Orion Systems,Painting,EQ-009,OP-016,Type-B,83,3,2,2,Conditional,Morning,Line-1
+2024-12-25,ORD-20240494,Pacific Components,Quality Control,EQ-009,OP-010,Type-D,185,2,2,1,Conditional,Afternoon,Line-3
+2024-12-25,ORD-20240493,Acme Corp,Welding,EQ-009,OP-001,Type-A,102,1,1,0,Pass,Morning,Line-3
+2024-12-26,ORD-20240496,Acme Corp,Machining,EQ-009,OP-008,Type-C,94,7,1,1,Pass,Night,Line-3
+2024-12-26,ORD-20240497,Delta Industries,Welding,EQ-011,OP-021,Type-C,193,6,2,0,Conditional,Night,Line-2
+2024-12-26,ORD-20240495,Delta Industries,Painting,EQ-005,OP-018,Type-A,163,8,5,0,Fail,Morning,Line-1
+2024-12-27,ORD-20240498,Titan Works,Welding,EQ-004,OP-011,Type-A,195,4,0,0,Conditional,Morning,Line-4
+2024-12-30,ORD-20240499,Titan Works,Machining,EQ-002,OP-023,Type-A,188,1,1,0,Pass,Night,Line-4
+2024-12-31,ORD-20240500,Stellar Fabrication,Quality Control,EQ-006,OP-002,Type-D,172,2,2,1,Pass,Morning,Line-4
