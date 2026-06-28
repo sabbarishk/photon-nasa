@@ -27,3 +27,12 @@ export async function uploadFile(file) {
   }
   return res.json()
 }
+
+export async function pingBackend() {
+  try {
+    await fetch(`${API_BASE}/health`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+    })
+  } catch {}
+}

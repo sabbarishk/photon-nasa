@@ -10,7 +10,7 @@ import Badge from '../components/ui/Badge'
 import Skeleton from '../components/ui/Skeleton'
 import SuggestionChip from '../components/ui/SuggestionChip'
 import StepProgress from '../components/ui/StepProgress'
-import { analyzeData, uploadFile } from '../services/api'
+import { analyzeData, uploadFile, pingBackend } from '../services/api'
 
 const EXAMPLE_CHIPS = [
   'What are the key trends?',
@@ -268,6 +268,16 @@ function DataSourceSection({ currentSource, onSourceSet, onClear }) {
   )
 }
 
+function stripMarkdown(text) {
+  if (!text) return ''
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/#{1,6}\s/g, '')
+    .replace(/`(.*?)`/g, '$1')
+    .trim()
+}
+
 function TypingIndicator() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
@@ -483,7 +493,7 @@ function TurnHistoryBar({ turns, activeTurnIndex, onSelect }) {
   )
 }
 
-function AnalysisResults({ result, methodologyUsed, codeVisible, onToggleCode }) {
+function AnalysisResults({ result, methodologyUsed, codeVisible, onToggleCode, onRerun }) {
   const hasImage = Boolean(result.execution?.output_image)
 
   return (
@@ -516,18 +526,36 @@ function AnalysisResults({ result, methodologyUsed, codeVisible, onToggleCode })
         </div>
       ) : (
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: 120,
-          borderRadius: 8,
           border: '1px dashed var(--border-default)',
-          color: 'var(--text-tertiary)',
-          fontSize: 13,
-          gap: 8,
+          borderRadius: 8,
+          padding: 32,
+          textAlign: 'center',
         }}>
-          <BarChart2 size={16} />
-          Re-run analysis to see chart
+          <BarChart2 size={24} style={{ color: 'var(--text-tertiary)', margin: '0 auto 12px', display: 'block' }} />
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 16 }}>
+            Chart not available for this turn
+          </p>
+          <button
+            onClick={onRerun}
+            style={{
+              background: 'var(--accent-primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              padding: '8px 16px',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-hover)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent-primary)' }}
+          >
+            ↺ Re-run this analysis
+          </button>
         </div>
       )}
 
@@ -568,9 +596,37 @@ function AnalysisResults({ result, methodologyUsed, codeVisible, onToggleCode })
               <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent-primary)' }}>AI Insight</span>
             </div>
             <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7, margin: 0 }}>
-              {result.insight_narrative}
+              {stripMarkdown(result.insight_narrative)}
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Data Profile */}
+      {result.profile?.columns?.length > 0 && (
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 12 }}>DATA PROFILE</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: result.profile.columns.some(c => c.null_pct > 0) ? 10 : 0 }}>
+            {result.profile.columns.map((col, i) => (
+              <span key={i} style={{
+                fontSize: 11,
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 4,
+                padding: '3px 8px',
+                color: 'var(--text-secondary)',
+                whiteSpace: 'nowrap',
+              }}>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{col.name}</span>
+                <span style={{ color: 'var(--text-tertiary)', marginLeft: 4 }}>{col.dtype}</span>
+              </span>
+            ))}
+          </div>
+          {result.profile.columns.some(c => c.null_pct > 0) && (
+            <p style={{ fontSize: 12, color: 'var(--warning)', marginTop: 4 }}>
+              ⚠ {result.profile.columns.filter(c => c.null_pct > 0).length} column{result.profile.columns.filter(c => c.null_pct > 0).length > 1 ? 's' : ''} contain null values. Consider cleaning your data before analysis for best results.
+            </p>
+          )}
         </div>
       )}
 
@@ -728,8 +784,9 @@ export default function Workspace() {
   const threadRef = useRef(null)
   const stepTimerRef = useRef(null)
 
-  // On mount, check for saved session
+  // On mount: warm up backend silently, then check for saved session
   useEffect(() => {
+    pingBackend()
     const session = loadSession()
     if (session && session.turns?.length > 0) {
       setSavedSession(session)
@@ -819,7 +876,7 @@ export default function Workspace() {
 
       const assistantMsg = {
         role: 'assistant',
-        content: result.insight_narrative || 'Analysis complete.',
+        content: stripMarkdown(result.insight_narrative) || 'Analysis complete.',
         suggestions: result.follow_up_suggestions || [],
       }
       setMessages(prev => [...prev, assistantMsg])
@@ -1016,6 +1073,7 @@ export default function Workspace() {
                   ...prev,
                   [activeTurnIndex]: !prev[activeTurnIndex],
                 }))}
+                onRerun={() => handleSubmit(activeResult.question)}
               />
             ) : (
               <EmptyDashboard />
