@@ -1,78 +1,202 @@
-# Photon — AI Data Analysis Assistant
+# Photon
 
-Ask a question about your data in plain English. Photon profiles the dataset, retrieves the right analysis methodology via RAG, generates grounded Python code, executes it in a sandboxed AWS Lambda, and returns real results — not hallucinated output.
+**Open-source conversational data analyst.**  
+Upload any CSV or Excel file, ask questions in plain English, and get a complete KPI dashboard with real executed results — not AI guesses.
 
-## What it does
+> Self-hostable alternative to Julius AI, ChatCSV, and Retool AI. MIT license. No signup required.
 
-Paste any public CSV URL and ask a question. Photon runs a data profiler to detect the dataset type (tabular, time series, wide format) and extract column schema. It uses that classification to retrieve a matching methodology playbook from ChromaDB. That methodology grounds the prompt sent to the Anthropic Claude API, which generates analysis code specific to the data structure — not generic pandas defaults. The code runs in AWS Lambda (no network access, strict memory and time limits), and the real output — stdout, a chart, and the generated code — comes back to the browser.
+---
+
+## Why Photon
+
+Every AI data tool either generates code you have to run yourself, or lives behind a paywall. Photon executes your analysis on AWS Lambda and returns real computed results in a conversational interface you can self-host for free.
+
+- **Real execution** — analysis code runs on AWS Lambda. Every number in your dashboard comes from actual computation against your data, not LLM hallucination.
+- **Conversational** — ask follow-ups. Each turn builds on the previous analysis. "Show me by department." "Why is this dropping?" "Which operator has the most redos?" Every follow-up re-executes against real data.
+- **Self-hostable** — git clone and run. No SaaS subscription, no data leaving your infrastructure (except the Lambda call), MIT license.
+- **Full dashboard** — KPI cards, multi-panel charts, AI insight narrative, anomaly detection. Not a single chart. A complete analyst output.
+
+---
 
 ## Architecture
 
 ```
-User question + CSV URL
-→ Data Profiler          (type detection, schema, null analysis)
-→ ChromaDB RAG           (methodology playbook retrieval by data type)
-→ Anthropic Claude API   (grounded Python code generation)
-→ AWS Lambda             (sandboxed execution, no network, 15s timeout)
-→ Real results + chart   (stdout, base64 PNG, generated code visible)
+User question + CSV / Excel / URL
+        │
+        ▼
+┌───────────────────┐
+│   FastAPI Backend │  Python 3.11
+└────────┬──────────┘
+         │
+         ├──▶ Data Profiler
+         │       Schema extraction, type detection,
+         │       null analysis, KPI candidate identification
+         │
+         ├──▶ ChromaDB RAG
+         │       Retrieves methodology playbook by data type
+         │       (tabular / time_series / wide_format)
+         │
+         ├──▶ Anthropic Claude API  (claude-sonnet-4-6)
+         │       Pass 1: grounded code generation
+         │               (profile + playbook + conversation history)
+         │       Pass 2: AI insight narrative generation
+         │       Pass 3: follow-up question suggestions
+         │
+         ├──▶ AWS Lambda  (sandboxed execution)
+         │       Real computation, real results
+         │       pandas / numpy / matplotlib in isolated environment
+         │       No in-process exec() — Lambda only
+         │
+         └──▶ Dashboard Response
+                 KPI cards  ·  Multi-panel charts
+                 Insight narrative  ·  Anomaly callouts
+                 Follow-up suggestions
 ```
+
+Conversation history is passed client-side on every request. The backend is stateless — no sessions, no Redis, no server-side user state. This is what makes it self-hostable: git clone and run.
+
+---
 
 ## Tech stack
 
-- **Backend:** Python 3.11, FastAPI
-- **Embeddings:** sentence-transformers (all-MiniLM-L6-v2), local inference
-- **Vector store:** ChromaDB (persistent, cosine similarity, HNSW index)
-- **LLM:** Anthropic Claude API (claude-sonnet-4-6)
-- **Execution sandbox:** AWS Lambda (no network, 256 MB RAM, 15 s timeout)
-- **Frontend:** React 18 + Vite, Tailwind CSS
+| Layer | Technology |
+|---|---|
+| LLM | Anthropic Claude API (`claude-sonnet-4-6`) |
+| RAG | ChromaDB (persistent, cosine similarity, HNSW) · sentence-transformers (`all-MiniLM-L6-v2`) |
+| Execution | AWS Lambda (Python 3.11, `photon-data-science` layer, 512 MB, 30s timeout) |
+| Storage | AWS S3 (`photon-analysis-storage`, us-east-1) |
+| Backend | Python 3.11 · FastAPI |
+| Frontend | React 18 · Vite · Tailwind CSS |
+| Auth | API key middleware (`PHOTON_SKIP_AUTH=1` for local dev) |
+
+---
 
 ## Running locally
 
+### 1. Clone and set up Python
+
 ```bash
-# 1. Clone and configure
-git clone https://github.com/sabbarishk/photon.git
-cd photon
-cp .env.example .env
-# Edit .env — fill in ANTHROPIC_API_KEY, AWS_ACCESS_KEY_ID,
-# AWS_SECRET_ACCESS_KEY, AWS_REGION
+git clone https://github.com/sabbarishk/photon-nasa.git
+cd photon-nasa
 
-# 2. Install backend dependencies
 cd photon
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS / Linux
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # macOS/Linux
 pip install -r requirements.txt
+```
 
-# 3. Start the API server (from repo root)
-cd ..
-uvicorn app.main:app --reload --app-dir photon
-# → http://localhost:8000
+### 2. Set up frontend
 
-# 4. Start the frontend (separate terminal)
+```bash
 cd frontend
 npm install
-npm run dev
-# → http://localhost:5173
 ```
 
-> `PHOTON_SKIP_AUTH=1` in `.env` bypasses API key auth for local development. Remove it before deploying.
-
-Quick test via curl:
+### 3. Configure environment
 
 ```bash
-curl -s -X POST http://localhost:8000/workflow/generate \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is the trend over time?",
-       "source": "https://people.sc.fsu.edu/~jburkardt/data/csv/airtravel.csv"}'
+cp photon/.env.example photon/.env
 ```
+
+Edit `photon/.env`:
+
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=us-east-1
+PHOTON_SKIP_AUTH=1
+```
+
+The IAM user needs only `lambda:InvokeFunction` on the `photon-code-executor` function.
+
+### 4. Deploy AWS Lambda
+
+The Lambda function executes the generated analysis code in a sandboxed environment.
+
+```bash
+# Create the data science layer (pandas, numpy, matplotlib)
+cd aws
+.\create_layer.ps1          # Windows PowerShell
+
+# Deploy the Lambda function
+aws lambda create-function \
+  --function-name photon-code-executor \
+  --runtime python3.11 \
+  --role arn:aws:iam::YOUR_ACCOUNT:role/photon-lambda-role \
+  --handler lambda_function.handler \
+  --timeout 30 \
+  --memory-size 512 \
+  --zip-file fileb://function.zip
+```
+
+See `aws/README.md` for full Lambda setup instructions.
+
+### 5. Load ChromaDB playbooks
+
+```bash
+cd photon
+python scripts/load_playbooks.py
+```
+
+### 6. Start both servers
+
+```bash
+# Terminal 1 — backend
+cd photon
+$env:PHOTON_SKIP_AUTH="1"    # PowerShell
+uvicorn app.main:app --reload --app-dir photon
+
+# Terminal 2 — frontend
+cd frontend
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+---
+
+## Try the demo
+
+Without uploading anything, click **Try Demo** on the landing page or the navbar. This loads a synthetic manufacturing quality dataset (500 rows, Jan–Dec 2024) with realistic patterns:
+
+- Q3 higher redo rates (summer heat affecting quality)
+- Aging equipment (EQ-007, EQ-011) with elevated defect rates
+- Operator-level performance differences (OP-003, OP-018)
+- Department scrap rate comparison
+- Client order quality breakdown
+
+Example questions to try:
+- "What are the key quality trends?"
+- "Which department has the highest redo rate?"
+- "Show me defect rates by equipment"
+- "Are there any anomalies in the night shift data?"
+
+---
 
 ## Project structure
 
-| Directory | Contents |
-|-----------|----------|
-| `photon/` | FastAPI backend — routes, profiler, ChromaDB client, LLM service, Lambda executor |
-| `frontend/` | React + Vite UI — three-state flow: input → loading → results |
-| `data/` | Methodology playbooks (tabular, time\_series, wide\_format) loaded into ChromaDB |
-| `docker/` | Sandbox Dockerfile (retained for reference; execution migrated to Lambda) |
-| `aws/` | IAM least-privilege setup for Lambda invocation |
-| `docs/` | `DECISIONS.md` (ADR log), `PROGRESS.md` (session history) |
+```
+photon/
+  app/
+    routes/        FastAPI route handlers (workflow, upload, demo, health)
+    services/      Core services: LLM, Lambda executor, ChromaDB, profiler
+  data/
+    playbooks/     RAG methodology documents (tabular, time_series, wide_format)
+    demo/          Synthetic manufacturing demo dataset
+  scripts/         Data generation, ChromaDB ingestion, utility scripts
+frontend/
+  src/
+    pages/         Landing, Workspace
+    components/    KPICard, Badge, Skeleton, SuggestionChip, StepProgress
+    services/      API client (analyzeData, uploadFile, pingBackend)
+aws/               Lambda function code and layer build scripts
+docs/              Architecture decisions (DECISIONS.md), progress log (PROGRESS.md)
+```
+
+---
+
+## License
+
+MIT — use it, fork it, self-host it.
