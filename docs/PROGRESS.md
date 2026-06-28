@@ -5,6 +5,62 @@ Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-28 — Session 11: Phase 3 polish and UX improvements
+
+**Did:**
+- FIX 1 — Spacing and breathing room:
+  - body font-size 14px → 15px, line-height 1.6 → 1.7
+  - Left panel width 380px → 420px
+  - Conversation thread padding 16px → 20px, gap 12px → 16px
+  - Message bubble (user) padding 10px 14px → 12px 16px
+  - Textarea padding 10px 12px → 12px 14px, font-size 13px → 14px
+  - DATA SOURCE section padding increased, label margin-bottom 10px → 12px
+  - AnalysisResults padding 24px → 32px, gap 28px → 32px
+  - LoadingDashboard padding 24px → 32px
+  - KPICard value fontSize 28px → 30px, padding 20px → 24px
+
+- FIX 2 — Turn history / analysis versioning:
+  - Replaced single latestResult with turns[] array and activeTurnIndex
+  - Each turn: {id, question, timestamp, result} — pushed on completion
+  - TurnHistoryBar renders at top of right panel when turns.length > 1:
+    horizontal scrollable row, active turn highlighted in accent-muted,
+    clicking any turn switches the right panel to show that turn's dashboard
+  - Conversation thread always shows all messages in order; clicking a
+    suggestion or sending a new question always adds a new turn
+
+- FIX 3 — localStorage session persistence:
+  - saveSession() strips output_image before saving (base64 too large)
+  - Saves last 10 turns under key 'photon_session'
+  - On mount: checks for saved session → shows RestoreBanner in left panel
+    with "Restore" and "Start fresh" buttons
+  - Restore: rebuilds messages and turns from localStorage, shows
+    "Re-run analysis to see chart" placeholder for turns without images
+  - "Clear session history" button at bottom of left panel (with confirm())
+
+- FIX 4 — Small bugs and polish:
+  - Removed duplicate "Load a data source" text (was appearing in both
+    textarea placeholder AND as a separate <p> below; now placeholder only)
+  - Landing page: ChevronDown scroll indicator at bottom of hero section,
+    animated with scrollBounce keyframe (gentle up-down 2s loop)
+  - Typing indicator: three animating dots appear in conversation thread
+    while analysis is in flight (TypingIndicator component, CSS animation
+    typingDot with staggered 0.2s delays)
+  - Per-turn code visibility: codeVisible state keyed by turn index —
+    expanding code on turn 1 then switching to turn 2 shows it collapsed
+
+**Build verification:** Vite build ✓ 1522 modules, zero errors
+
+**What's done in v2 so far:**
+- [x] All Phase 1 backend (conversation history, PHOTON_SUMMARY, LLM passes)
+- [x] All Phase 2 UI (split panel, KPI cards, chart, narrative, chips)
+- [x] Phase 3 polish: spacing, turn history, localStorage, typing dots,
+      scroll indicator, per-turn code state, duplicate text fix
+
+**Next session:**
+Demo mode with synthetic manufacturing dataset. Then Pillar 2.
+
+---
+
 ## 2026-06-27 — Session 10: Phase 2 executive UI complete
 
 **Did:**
