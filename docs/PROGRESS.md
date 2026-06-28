@@ -5,6 +5,56 @@ Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-28 — Session 12: Three targeted fixes
+
+**Did:**
+- FIX 1 — Re-run button for turns without charts:
+  - Replaced the small dashed "Re-run analysis to see chart" placeholder
+    with a prominent centered button: BarChart2 icon + "↺ Re-run this analysis"
+  - Passes `onRerun` prop to AnalysisResults; calls handleSubmit(turn.question)
+  - handleSubmit already accepted an optional question param so no change needed there
+
+- FIX 2 — Backend warm-up ping on workspace mount:
+  - Added pingBackend() to api.js: GET /health, 5s timeout, silent fail
+  - Called in mount useEffect before session restore — fires immediately on load
+  - Warms the FastAPI process; Lambda cold start is still a known limitation
+    (user-facing: the Re-run button is the UX recovery path for cold starts)
+
+- FIX 3 — Strip markdown asterisks from insight narrative:
+  - Added stripMarkdown() helper at module level (strips **bold**, *italic*,
+    headers, inline code)
+  - Applied in AnalysisResults where narrative is rendered in the right panel
+  - Applied in handleSubmit where narrative is set as assistantMsg.content
+    (left panel conversation thread)
+
+- Profile null warning:
+  - Added DATA PROFILE section at bottom of AnalysisResults
+  - Shows all columns as compact pills: name (bold) + dtype (muted)
+  - If any column has null_pct > 0, shows warning in var(--warning) color:
+    "⚠ N column(s) contain null values. Consider cleaning your data..."
+  - Uses result.profile.columns from the API response (already returned by backend)
+
+**Build verification:** Vite build ✓ 1522 modules, zero errors
+
+**Known limitation:** Lambda cold start (~2-4s extra on first invocation after idle).
+The re-run button is the UX path for this — if the first analysis returns no chart,
+clicking re-run on the same question hits a warm Lambda.
+
+**What's done in v2 so far:**
+- [x] All Phase 1 backend (conversation history, PHOTON_SUMMARY, LLM passes)
+- [x] All Phase 2 UI (split panel, KPI cards, chart, narrative, chips)
+- [x] Phase 3 polish: spacing, turn history, localStorage, typing dots,
+      scroll indicator, per-turn code state, duplicate text fix
+- [x] Re-run button for chart-less turns (session restore scenario)
+- [x] Backend ping on mount (warm-up)
+- [x] Markdown stripping from insight narrative display
+- [x] Data profile column list with null warning
+
+**Next session:**
+Demo mode with synthetic manufacturing dataset. Then Pillar 2.
+
+---
+
 ## 2026-06-28 — Session 11: Phase 3 polish and UX improvements
 
 **Did:**
