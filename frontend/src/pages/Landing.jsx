@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { BarChart2, MessageCircle, GitBranch, Github } from 'lucide-react'
+import { BarChart2, MessageCircle, GitBranch, Github, ChevronDown } from 'lucide-react'
 
 function Navbar() {
   const navigate = useNavigate()
@@ -142,6 +142,7 @@ export default function Landing() {
         padding: '0 24px',
         background: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 60%), var(--bg-base)',
         textAlign: 'center',
+        position: 'relative',
       }}>
         {/* Badge pill */}
         <div style={{
@@ -240,6 +241,18 @@ export default function Landing() {
         <p style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
           No signup required · Self-hostable · Open source MIT
         </p>
+
+        {/* Scroll indicator */}
+        <div style={{
+          position: 'absolute',
+          bottom: 32,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: 'var(--text-tertiary)',
+          animation: 'scrollBounce 2s ease-in-out infinite',
+        }}>
+          <ChevronDown size={24} />
+        </div>
       </section>
 
       {/* Features */}
