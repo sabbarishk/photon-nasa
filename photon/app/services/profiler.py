@@ -1,12 +1,27 @@
+import base64
 import io
 import os
 
 import pandas as pd
 import requests
 
+from app.services import upload_store
+
 
 def load_dataframe(source: str) -> pd.DataFrame:
     """Load a CSV, Excel, or JSON dataset into a DataFrame from a local path or URL."""
+    if source.startswith("photon-upload://"):
+        upload_id = source.removeprefix("photon-upload://")
+        try:
+            data = upload_store.get(upload_id)
+        except KeyError:
+            raise ValueError(f"Upload not found or expired: {upload_id}")
+        content = base64.b64decode(data["content"])
+        ext = data["extension"]
+        if ext in ('.xlsx', '.xls'):
+            return pd.read_excel(io.BytesIO(content))
+        return pd.read_csv(io.BytesIO(content))
+
     is_url = source.startswith("http://") or source.startswith("https://")
 
     if is_url:

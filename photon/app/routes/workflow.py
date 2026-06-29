@@ -4,6 +4,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.services import upload_store
 from app.services.lambda_executor import execute_via_lambda
 from app.services.llm import (
     generate_analysis_code,
@@ -52,13 +53,24 @@ def generate_workflow(req: WorkflowRequest):
     # Step 2: retrieve methodology playbook.
     playbook = search_playbooks(data_profile["data_type"])
 
+    # For uploaded files, the LLM must generate code using the /tmp path that
+    # Lambda will write the file to — not the photon-upload:// URI.
+    code_source = req.source
+    if req.source.startswith("photon-upload://"):
+        upload_id = req.source.removeprefix("photon-upload://")
+        try:
+            meta = upload_store.get(upload_id)
+            code_source = f"/tmp/uploaded_data{meta['extension']}"
+        except KeyError:
+            code_source = "/tmp/uploaded_data.csv"
+
     # Step 3: generate dashboard code grounded in profile + playbook + history.
     try:
         code = generate_analysis_code(
             req.question,
             data_profile,
             playbook,
-            req.source,
+            code_source,
             req.conversation_history,
         )
     except ValueError as e:
@@ -69,7 +81,7 @@ def generate_workflow(req: WorkflowRequest):
 
     # Step 4: execute in Lambda sandbox.
     try:
-        execution = execute_via_lambda(code)
+        execution = execute_via_lambda(code, req.source)
     except Exception as e:
         log.error("Lambda invocation failed: %s", e)
         raise HTTPException(

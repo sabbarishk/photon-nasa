@@ -1,14 +1,15 @@
+import base64
 import os
-import shutil
 import uuid
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
+
+from app.services import upload_store
 
 router = APIRouter()
 
 _ALLOWED = {'.csv', '.xlsx', '.xls'}
-_UPLOAD_DIR = '/tmp/photon_uploads'
 
 
 @router.post("/")
@@ -20,11 +21,19 @@ async def upload_file(file: UploadFile = File(...)):
             content={"error": f"File type {ext} not supported. Use CSV or Excel."},
         )
 
-    os.makedirs(_UPLOAD_DIR, exist_ok=True)
-    safe_name = f"{uuid.uuid4()}{ext}"
-    file_path = os.path.join(_UPLOAD_DIR, safe_name)
+    contents = await file.read()
+    upload_id = str(uuid.uuid4())
+    upload_store.put(upload_id, {
+        "content": base64.b64encode(contents).decode(),
+        "filename": file.filename,
+        "extension": ext,
+    })
 
-    with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    return {"path": f"photon-upload://{upload_id}", "filename": file.filename}
 
-    return {"path": file_path, "filename": file.filename}
+
+@router.get("/retrieve/{upload_id}")
+async def retrieve_upload(upload_id: str):
+    if not upload_store.contains(upload_id):
+        raise HTTPException(status_code=404, detail="Upload not found or expired")
+    return upload_store.get(upload_id)
