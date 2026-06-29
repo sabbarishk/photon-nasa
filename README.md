@@ -16,6 +16,8 @@ Every AI data tool either generates code you have to run yourself, or lives behi
 - **Self-hostable** — git clone and run. No SaaS subscription, no data leaving your infrastructure (except the Lambda call), MIT license.
 - **Full dashboard** — KPI cards, multi-panel charts, AI insight narrative, anomaly detection. Not a single chart. A complete analyst output.
 
+![Photon analysis workspace](docs/screenshot-upload.png)
+
 ---
 
 ## Architecture
@@ -52,6 +54,8 @@ User question + CSV / Excel / URL
                  Insight narrative  ·  Anomaly callouts
                  Follow-up suggestions
 ```
+
+![4-panel dashboard](docs/screenshot-dashboard.png)
 
 Conversation history is passed client-side on every request. The backend is stateless — no sessions, no Redis, no server-side user state. This is what makes it self-hostable: git clone and run.
 

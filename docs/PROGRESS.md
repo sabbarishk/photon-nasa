@@ -5,6 +5,75 @@ Newest entry on top. "What happened" lives here.
 
 ---
 
+## 2026-06-28 — Session 14: Phase 3+4 verified, screenshots added
+
+**Did:**
+
+**Phase 3 — File upload pipeline verified end-to-end:**
+- Root cause: Lambda runs on AWS and cannot access local filesystem paths
+  (`/tmp/photon_uploads/...`) or `localhost:8000` endpoints
+- Fix 1 — Demo dataset URL: changed DEMO_SOURCE.path in Workspace.jsx from
+  `http://localhost:8000/demo/manufacturing` to public GitHub raw URL so Lambda
+  can fetch it over HTTPS from AWS
+- Fix 2 — Uploaded file content: complete rearchitecture of file upload flow:
+  - New `services/upload_store.py`: shared in-memory dict, avoids circular imports
+  - `routes/upload.py` rewritten: stores base64-encoded file content in memory,
+    returns `photon-upload://{uuid}` URI (never writes to disk)
+  - `services/profiler.py`: handles `photon-upload://` by reading from upload_store
+  - `services/lambda_executor.py`: embeds `file_content` + `file_extension` in
+    Lambda payload when source is a `photon-upload://` URI
+  - `routes/workflow.py`: resolves `code_source = /tmp/uploaded_data{ext}` for
+    LLM (what Lambda will write), passes original `photon-upload://` URI to executor
+  - `aws/lambda_function.py`: new complete handler — writes `file_content` from
+    event payload to `/tmp/uploaded_data{ext}` before running generated code
+- Fix 3 — LLM safety rules added to prevent recurring hallucinations:
+  - `fig.autofmt_xdate(ax=...)` — the `ax=` kwarg doesn't exist; use
+    `ax.tick_params(axis='x', rotation=30)` instead
+  - `plt.tight_layout()` conflicts with GridSpec; use `hspace`/`wspace` in
+    GridSpec(...) instead
+
+**End-to-end test result (confirmed working):**
+- Upload: manufacturing_quality.csv → `photon-upload://49f79128-...`
+- Question: "Which departments have the highest defect rates?"
+- Result: exit_code=0, output_image=PRESENT (335,732 chars), kpi_cards=5
+- Insight: "Painting is your highest-risk department with a defect rate of 4.8%,
+  roughly double that of your best-performing department, Machining..."
+- Tested with external NASA temperature CSV (GLB.Ts+dSST.csv) — full 4-panel
+  dashboard with 5 KPI cards, 6 anomaly callouts, AI insight narrative
+
+**Phase 4 — Screenshots and README:**
+- Added screenshot references to README.md:
+  - `docs/screenshot-upload.png` under "Why Photon" section
+  - `docs/screenshot-dashboard.png` under "Architecture" section
+- Screenshots must be saved manually: right-click each screenshot from session
+  and save as the filenames above into the docs/ folder
+
+**What's done in v2 so far:**
+- [x] All Phase 1 backend (conversation history, PHOTON_SUMMARY, LLM passes)
+- [x] All Phase 2 UI (split panel, KPI cards, chart, narrative, chips)
+- [x] Phase 3 polish: spacing, turn history, localStorage, typing dots,
+      scroll indicator, per-turn code state
+- [x] Re-run button, backend ping, markdown stripping, profile null warning
+- [x] Synthetic manufacturing demo dataset (500 rows, seed=42)
+- [x] GET /demo/manufacturing backend endpoint
+- [x] One-click demo loading from UI and from landing page "Try Demo"
+- [x] Professional README with architecture diagram and setup instructions
+- [x] File upload pipeline: photon-upload:// URI scheme, in-memory store,
+      Lambda payload embedding — end-to-end verified with real files
+- [x] LLM safety rules: autofmt_xdate and tight_layout/GridSpec conflicts
+- [x] Screenshot references wired into README (files need manual save to docs/)
+
+**Next session:**
+Phase 5 — Pillar 2: S3 data lake storage, Step Functions orchestration,
+CloudWatch monitoring and alerting, "Promote to pipeline" feature,
+pipeline dashboard showing run history.
+
+Before starting Pillar 2: manually update the Lambda function on AWS Console
+by pasting contents of `aws/lambda_function.py` into the code editor and
+clicking Deploy. The file is committed but AWS still runs the old handler.
+
+---
+
 ## 2026-06-28 — Session 13: Phase 4 — demo data and README
 
 **Did:**
