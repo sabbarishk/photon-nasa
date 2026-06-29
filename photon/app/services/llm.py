@@ -237,7 +237,8 @@ Write Python code that does ALL of the following:
    - Each subplot answers a different analytical question about the data.
    - Use matplotlib. seaborn is allowed.
    - Figure size: (14, 10) for 4 panels, (12, 6) for 2 panels.
-   - Call plt.tight_layout() before saving.
+   - If using GridSpec: set spacing via GridSpec(hspace=0.4, wspace=0.35) — do NOT call plt.tight_layout().
+   - If using plt.subplots(): call plt.tight_layout() before saving.
    - Apply dark style: plt.style.use('dark_background')
    - Use #6366f1 as the primary accent color for the main data series.
 
@@ -270,6 +271,8 @@ Write Python code that does ALL of the following:
    - Wrap any calculation that could divide by zero with a check or try/except
    - Use simple, proven chart types: bar, line, scatter, histogram, boxplot
    - Every subplot must work even if some values are equal or zero
+   - Do NOT use fig.autofmt_xdate(ax=...) — the ax parameter does not exist. To rotate tick labels on a specific axis use ax.tick_params(axis='x', rotation=30) instead.
+   - Do NOT call plt.tight_layout() after GridSpec — it conflicts. Use the hspace/wspace parameters in GridSpec(hspace=..., wspace=...) instead.
 
 6. Return only the Python code. No markdown. No triple backticks. No explanation."""
 
