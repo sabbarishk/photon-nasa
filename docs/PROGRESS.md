@@ -9,6 +9,12 @@ Newest entry on top. "What happened" lives here.
 
 **Did:**
 
+**Hotfix — Excel upload broken in venv:**
+- openpyxl was listed in requirements.txt but not installed in the venv
+- Fixed by installing manually: `pip install openpyxl`
+- This is why we verify every feature — requirements.txt and venv state can diverge
+- openpyxl confirmed present in requirements.txt at line 16
+
 **Phase 3 — File upload pipeline verified end-to-end:**
 - Root cause: Lambda runs on AWS and cannot access local filesystem paths
   (`/tmp/photon_uploads/...`) or `localhost:8000` endpoints
